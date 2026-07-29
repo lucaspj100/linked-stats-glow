@@ -32,7 +32,7 @@ const eventsQuery = queryOptions({
   staleTime: 15_000,
 });
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "LinkedIn Message Tracker — Painel de Vendas" },
