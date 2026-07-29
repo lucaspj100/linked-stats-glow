@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, CalendarDays, CalendarRange, Radio, Send } from "lucide-react";
 
@@ -71,6 +71,7 @@ const PERIODS: { key: PeriodKey; label: string }[] = [
 function Dashboard() {
   const { data: events } = useSuspenseQuery(eventsQuery);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodKey>("7d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
