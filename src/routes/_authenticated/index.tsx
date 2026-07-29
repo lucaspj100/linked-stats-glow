@@ -133,17 +133,30 @@ function Dashboard() {
               Painel interno de prospecção · volume de mensagens do time
             </p>
           </div>
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
-              live
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-border bg-muted text-muted-foreground",
-            )}
-          >
-            <Radio className="size-3.5" />
-            {live ? "Tempo real ativo" : "Conectando…"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+                live
+                  ? "border-primary/30 bg-primary/10 text-primary"
+                  : "border-border bg-muted text-muted-foreground",
+              )}
+            >
+              <Radio className="size-3.5" />
+              {live ? "Tempo real ativo" : "Conectando…"}
+            </span>
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate({ to: "/auth" });
+              }}
+              className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              Sair
+            </button>
+          </div>
+
         </div>
       </header>
 
