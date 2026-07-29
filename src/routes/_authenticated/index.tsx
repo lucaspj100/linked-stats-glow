@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, CalendarDays, CalendarRange, Radio, Send } from "lucide-react";
 
@@ -32,7 +32,7 @@ const eventsQuery = queryOptions({
   staleTime: 15_000,
 });
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "LinkedIn Message Tracker — Painel de Vendas" },
@@ -71,6 +71,7 @@ const PERIODS: { key: PeriodKey; label: string }[] = [
 function Dashboard() {
   const { data: events } = useSuspenseQuery(eventsQuery);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodKey>("7d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -133,17 +134,30 @@ function Dashboard() {
               Painel interno de prospecção · volume de mensagens do time
             </p>
           </div>
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
-              live
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-border bg-muted text-muted-foreground",
-            )}
-          >
-            <Radio className="size-3.5" />
-            {live ? "Tempo real ativo" : "Conectando…"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+                live
+                  ? "border-primary/30 bg-primary/10 text-primary"
+                  : "border-border bg-muted text-muted-foreground",
+              )}
+            >
+              <Radio className="size-3.5" />
+              {live ? "Tempo real ativo" : "Conectando…"}
+            </span>
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate({ to: "/auth" });
+              }}
+              className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              Sair
+            </button>
+          </div>
+
         </div>
       </header>
 
