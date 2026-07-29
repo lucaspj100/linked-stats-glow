@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "LinkedIn Message Tracker — Painel de Vendas" },
+      { name: "description", content: "Painel interno com volume de mensagens enviadas no LinkedIn por vendedor, conta e período, em tempo real." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "LinkedIn Message Tracker — Painel de Vendas" },
+      { property: "og:description", content: "Painel interno com volume de mensagens enviadas no LinkedIn por vendedor, conta e período, em tempo real." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "LinkedIn Message Tracker — Painel de Vendas" },
+      { name: "twitter:description", content: "Painel interno com volume de mensagens enviadas no LinkedIn por vendedor, conta e período, em tempo real." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a492be3f-192f-41f3-a142-863072602478/id-preview-8feafe47--275e3dec-0801-4821-952e-33dbf781aafe.lovable.app-1785356170112.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a492be3f-192f-41f3-a142-863072602478/id-preview-8feafe47--275e3dec-0801-4821-952e-33dbf781aafe.lovable.app-1785356170112.png" },
     ],
     links: [
       {

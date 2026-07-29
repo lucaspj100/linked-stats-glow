@@ -45,7 +45,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Acompanhe em tempo real as mensagens enviadas pelo time no LinkedIn: ranking por vendedor, contas e volume diário.",
+          "Painel interno com volume de mensagens enviadas no LinkedIn por vendedor, conta e período, em tempo real.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
