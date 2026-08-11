@@ -18,7 +18,14 @@
       <label for="account">Conta do LinkedIn</label>
       <input id="account" type="text" placeholder="LinkedIn Isabella" autocomplete="off" />
 
+      <label for="installation-id">Installation ID</label>
+      <input id="installation-id" type="text" placeholder="uuid da instalação" autocomplete="off" />
+
+      <label for="installation-token">Installation token</label>
+      <input id="installation-token" type="password" placeholder="token da instalação" autocomplete="off" />
+
       <button id="save" type="button">Salvar configuração</button>
+      <button id="test" type="button" class="secondary">Enviar evento de teste</button>
       <p class="saved" id="saved"></p>
 
       <dl class="info">
@@ -26,6 +33,8 @@
         <dd id="seller-value">—</dd>
         <dt>Conta configurada</dt>
         <dd id="account-value">—</dd>
+        <dt>Instalação</dt>
+        <dd id="install-value">—</dd>
         <dt>Mensagens detectadas hoje</dt>
         <dd id="count-value">0</dd>
       </dl>
