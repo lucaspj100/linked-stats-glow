@@ -6,6 +6,8 @@
   const MAX_ANCESTOR_LEVELS = 12;
   const TAG = "[LinkedIn Tracker]";
   const recent = new Map(); // chave do composer -> timestamp
+  const processedEvents = new WeakSet(); // evita processar o mesmo Event 2x
+  let lastFocusedComposer = null;
 
   console.log(`${TAG} content script ativo`, location.href);
 
@@ -49,11 +51,57 @@
     return (el.innerText || el.textContent || "").trim();
   }
 
+  // ----------------------------------------------------------------
+  // composedPath helpers (shadow DOM aberto, web components, filhos)
+  // ----------------------------------------------------------------
+
+  function pathOf(event) {
+    try {
+      return typeof event.composedPath === "function" ? event.composedPath() : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function editableFromPath(path) {
+    for (const node of path) {
+      if (!(node instanceof Element)) continue;
+      if (isComposerCandidate(node)) return node;
+    }
+    // segundo passe: elemento editável ainda que sem "cara" de mensagem
+    for (const node of path) {
+      if (!(node instanceof Element)) continue;
+      if (
+        node.getAttribute?.("contenteditable") === "true" ||
+        node.tagName === "TEXTAREA" ||
+        (node.getAttribute?.("role") || "").toLowerCase() === "textbox"
+      ) {
+        if (isVisible(node)) return node;
+      }
+    }
+    return null;
+  }
+
+  function getComposerFromEvent(event) {
+    const path = pathOf(event);
+    let found = editableFromPath(path);
+    if (found) return found;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target) {
+      const closest = target.closest?.('[contenteditable="true"], textarea, [role="textbox"]');
+      if (closest && isVisible(closest)) return closest;
+    }
+    return null;
+  }
+
   function collectCandidates(root) {
     const found = [];
-    const nodes = root.querySelectorAll(
-      '[contenteditable="true"], [role="textbox"], textarea',
-    );
+    let nodes;
+    try {
+      nodes = root.querySelectorAll('[contenteditable="true"], [role="textbox"], textarea');
+    } catch {
+      return found;
+    }
     for (const n of nodes) {
       if (isComposerCandidate(n)) found.push(n);
     }
@@ -109,6 +157,28 @@
     return null;
   }
 
+  function resolveComposerForButton(button, event) {
+    const fromPath = event ? getComposerFromEvent(event) : null;
+    if (fromPath && textOf(fromPath).length > 0) return fromPath;
+
+    if (
+      lastFocusedComposer &&
+      lastFocusedComposer.isConnected &&
+      isVisible(lastFocusedComposer) &&
+      textOf(lastFocusedComposer).length > 0
+    ) {
+      console.log(`${TAG} usando lastFocusedComposer`);
+      return lastFocusedComposer;
+    }
+
+    const active = document.activeElement;
+    if (active && isComposerCandidate(active) && textOf(active).length > 0) {
+      return active;
+    }
+
+    return findComposerForSendButton(button) || fromPath;
+  }
+
   function composerKey(composer) {
     const container =
       composer.closest('[class*="msg-"], form, [class*="messaging"]') || composer;
@@ -118,13 +188,10 @@
     return container.dataset.lmtKey;
   }
 
-  function isSendButton(el) {
-    if (!el || !(el instanceof Element)) return false;
-    const btn = el.closest('button, [role="button"]');
-    if (!btn) return false;
+  function isSendButtonEl(btn) {
+    if (!btn || !(btn instanceof Element)) return false;
     if (btn.disabled || btn.getAttribute("aria-disabled") === "true") return false;
-
-    if (btn.classList.contains("msg-form__send-button")) return btn;
+    if (btn.classList.contains("msg-form__send-button")) return true;
 
     const label = `${btn.getAttribute("aria-label") || ""} ${btn.innerText || btn.textContent || ""}`
       .trim()
@@ -135,9 +202,31 @@
       return false;
     }
 
-    if (/(^|\b)(enviar|send)(\b|$)/.test(label)) return btn;
-    if (btn.getAttribute("type") === "submit" && btn.closest("form")) return btn;
+    if (/(^|\b)(enviar|send)(\b|$)/.test(label)) return true;
+    if (btn.getAttribute("type") === "submit" && btn.closest("form")) return true;
     return false;
+  }
+
+  function isSendButton(el) {
+    if (!el || !(el instanceof Element)) return false;
+    const btn = el.closest('button, [role="button"]');
+    if (!btn) return false;
+    return isSendButtonEl(btn) ? btn : false;
+  }
+
+  function sendButtonFromEvent(event) {
+    const path = pathOf(event);
+    for (const node of path) {
+      if (!(node instanceof Element)) continue;
+      const role = (node.getAttribute?.("role") || "").toLowerCase();
+      if (node.tagName !== "BUTTON" && role !== "button") continue;
+      if (isSendButtonEl(node)) {
+        console.log(`${TAG} botão Enviar encontrado via composedPath`);
+        return node;
+      }
+      return false;
+    }
+    return isSendButton(event.target);
   }
 
   function confirmSend(composer, reason) {
@@ -167,49 +256,81 @@
     );
   }
 
-  // 1) Clique no botão Enviar (somente cliques reais do usuário)
-  document.addEventListener(
-    "click",
-    (event) => {
-      if (!event.isTrusted) return;
-      const btn = isSendButton(event.target);
-      if (!btn) return;
-      console.log(`${TAG} clique detectado`);
-      console.log(`${TAG} botão enviar identificado`);
+  // ----------------------------------------------------------------
+  // Handlers unificados (usados por window, document e listeners diretos)
+  // ----------------------------------------------------------------
 
-      const composer = findComposerForSendButton(btn);
-      if (!composer) return;
+  function handleClickEvent(event, origin) {
+    if (!event.isTrusted) return;
+    if (processedEvents.has(event)) return;
+    processedEvents.add(event);
+    console.log(`${TAG} click global capturado (${origin})`);
 
-      const hadText = textOf(composer).length > 0;
-      console.log(`${TAG} texto existente antes do envio: ${hadText ? "sim" : "não"}`);
-      if (!hadText) return;
-      confirmSend(composer, "clique em Enviar");
-    },
-    true,
-  );
+    const btn = sendButtonFromEvent(event);
+    if (!btn) return;
+    console.log(`${TAG} clique detectado`);
+    console.log(`${TAG} botão enviar identificado`);
 
-  // 2) Enter dentro do composer
-  document.addEventListener(
-    "keydown",
-    (event) => {
-      if (!event.isTrusted) return;
-      if (event.key !== "Enter") return;
-      if (event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
+    const composer = resolveComposerForButton(btn, event);
+    if (!composer) return;
 
-      const target = event.target instanceof Element ? event.target : null;
-      const composer = target ? target.closest('[contenteditable="true"], textarea, [role="textbox"]') : null;
-      if (!composer || !isComposerCandidate(composer)) return;
-      console.log(`${TAG} Enter detectado`);
-      console.log(`${TAG} composer encontrado`);
+    const hadText = textOf(composer).length > 0;
+    console.log(`${TAG} texto existente antes do envio: ${hadText ? "sim" : "não"}`);
+    if (!hadText) return;
+    confirmSend(composer, "clique em Enviar");
+  }
 
-      const beforeLen = textOf(composer).length;
-      console.log(`${TAG} texto existente antes do envio: ${beforeLen > 0 ? "sim" : "não"}`);
-      if (beforeLen === 0) return;
+  function handleKeydownEvent(event, origin) {
+    if (!event.isTrusted) return;
+    if (event.key !== "Enter") return;
+    if (processedEvents.has(event)) return;
+    processedEvents.add(event);
 
-      watchForSendEvidence(composer, beforeLen);
-    },
-    true,
-  );
+    console.log(`${TAG} keydown global capturado (${origin})`);
+    console.log(`${TAG} tecla: Enter`);
+    if (event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
+
+    let composer = getComposerFromEvent(event);
+    console.log(`${TAG} composedPath contém editor: ${composer ? "sim" : "não"}`);
+    if (!composer && lastFocusedComposer && lastFocusedComposer.isConnected) {
+      console.log(`${TAG} usando lastFocusedComposer`);
+      composer = lastFocusedComposer;
+    }
+    if (!composer) return;
+    console.log(`${TAG} Enter detectado`);
+    console.log(`${TAG} composer encontrado`);
+
+    const beforeLen = textOf(composer).length;
+    console.log(`${TAG} texto existente antes do envio: ${beforeLen > 0 ? "sim" : "não"}`);
+    if (beforeLen === 0) return;
+
+    watchForSendEvidence(composer, beforeLen);
+  }
+
+  // Listeners globais na fase mais alta possível
+  window.addEventListener("click", (e) => handleClickEvent(e, "window"), true);
+  window.addEventListener("keydown", (e) => handleKeydownEvent(e, "window"), true);
+  document.addEventListener("click", (e) => handleClickEvent(e, "document"), true);
+  document.addEventListener("keydown", (e) => handleKeydownEvent(e, "document"), true);
+
+  // ----------------------------------------------------------------
+  // focusin como fonte principal de detecção do editor real
+  // ----------------------------------------------------------------
+
+  function trackFocus(event) {
+    const path = pathOf(event);
+    const editor = editableFromPath(path) || (event.target instanceof Element ? event.target.closest?.('[contenteditable="true"], textarea, [role="textbox"]') : null);
+    if (!editor) return;
+    console.log(`${TAG} foco em possível editor`);
+    if (!isComposerCandidate(editor)) return;
+    console.log(`${TAG} editor ativo identificado`);
+    lastFocusedComposer = editor;
+    registerComposer(editor);
+    console.log(`${TAG} listeners instalados no editor ativo`);
+  }
+
+  window.addEventListener("focusin", trackFocus, true);
+  document.addEventListener("focusin", trackFocus, true);
 
   // Observa evidências de envio após um Enter válido (máx. 1,5s).
   function watchForSendEvidence(composer, beforeLen) {
@@ -270,18 +391,6 @@
   const boundButtons = new WeakSet();
   const observedRoots = new WeakSet();
 
-  function handleEnterOn(composer, event) {
-    if (!event.isTrusted) return;
-    if (event.key !== "Enter") return;
-    if (event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
-    if (!isComposerCandidate(composer)) return;
-    console.log(`${TAG} Enter direto detectado`);
-    const beforeLen = textOf(composer).length;
-    console.log(`${TAG} texto existente antes do envio: ${beforeLen > 0 ? "sim" : "não"}`);
-    if (beforeLen === 0) return;
-    watchForSendEvidence(composer, beforeLen);
-  }
-
   function chatContainerOf(el) {
     return (
       el.closest(
@@ -290,28 +399,23 @@
     );
   }
 
-  function bindSendButtons(container, composer) {
+  function bindSendButtons(container) {
     if (!container) return;
-    const buttons = container.querySelectorAll('button, [role="button"]');
+    let buttons;
+    try {
+      buttons = container.querySelectorAll('button, [role="button"]');
+    } catch {
+      return;
+    }
     for (const b of buttons) {
       if (boundButtons.has(b)) continue;
-      if (!isSendButton(b)) continue;
+      if (!isSendButtonEl(b)) continue;
       boundButtons.add(b);
       console.log(`${TAG} listener direto instalado no botão enviar`);
-      b.addEventListener(
-        "click",
-        (event) => {
-          if (!event.isTrusted) return;
-          console.log(`${TAG} clique direto detectado`);
-          const target = composer && composer.isConnected ? composer : findComposerForSendButton(b);
-          if (!target) return;
-          const hadText = textOf(target).length > 0;
-          console.log(`${TAG} texto existente antes do envio: ${hadText ? "sim" : "não"}`);
-          if (!hadText) return;
-          confirmSend(target, "clique direto em Enviar");
-        },
-        true,
-      );
+      b.addEventListener("click", (event) => {
+        console.log(`${TAG} clique direto detectado`);
+        handleClickEvent(event, "botão");
+      }, true);
     }
   }
 
@@ -320,13 +424,14 @@
     if (!isComposerCandidate(el)) return;
     boundComposers.add(el);
     console.log(`${TAG} chat/composer dinâmico detectado`);
-    el.addEventListener("keydown", (event) => handleEnterOn(el, event), true);
+    el.addEventListener("keydown", (event) => {
+      console.log(`${TAG} Enter direto detectado`);
+      handleKeydownEvent(event, "composer");
+    }, true);
     console.log(`${TAG} listener direto instalado no composer`);
 
-    const container = chatContainerOf(el);
-    bindSendButtons(container, el);
-    // botões podem ser habilitados/inseridos depois que o usuário digita
-    el.addEventListener("input", () => bindSendButtons(chatContainerOf(el), el), true);
+    bindSendButtons(chatContainerOf(el));
+    el.addEventListener("input", () => bindSendButtons(chatContainerOf(el)), true);
   }
 
   function scanRoot(root) {
@@ -350,6 +455,9 @@
       if (el.shadowRoot) {
         observeRoot(el.shadowRoot);
         scanRoot(el.shadowRoot);
+        el.shadowRoot.addEventListener("keydown", (e) => handleKeydownEvent(e, "shadow"), true);
+        el.shadowRoot.addEventListener("click", (e) => handleClickEvent(e, "shadow"), true);
+        el.shadowRoot.addEventListener("focusin", trackFocus, true);
       }
     }
   }
@@ -379,6 +487,9 @@
         if (!doc) continue;
         observeRoot(doc.body || doc.documentElement);
         scanRoot(doc);
+        doc.addEventListener("keydown", (e) => handleKeydownEvent(e, "iframe"), true);
+        doc.addEventListener("click", (e) => handleClickEvent(e, "iframe"), true);
+        doc.addEventListener("focusin", trackFocus, true);
       } catch {
         /* cross-origin: ignorado */
       }
@@ -388,4 +499,3 @@
   boot();
   setInterval(boot, 3000);
 })();
-
