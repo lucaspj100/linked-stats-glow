@@ -14,10 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      message_events: {
+      extension_installations: {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
+          label: string
+          last_used_at: string | null
+          linkedin_account: string
+          person_name: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          last_used_at?: string | null
+          linkedin_account: string
+          person_name: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_used_at?: string | null
+          linkedin_account?: string
+          person_name?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      message_events: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          id: string
+          installation_id: string | null
           linkedin_account: string
           person_name: string
           sent_at: string
@@ -25,7 +63,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          event_id?: string | null
           id?: string
+          installation_id?: string | null
           linkedin_account: string
           person_name: string
           sent_at?: string
@@ -33,13 +73,23 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          event_id?: string | null
           id?: string
+          installation_id?: string | null
           linkedin_account?: string
           person_name?: string
           sent_at?: string
           url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "message_events_installation_id_fkey"
+            columns: ["installation_id"]
+            isOneToOne: false
+            referencedRelation: "extension_installations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
