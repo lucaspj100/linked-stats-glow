@@ -163,7 +163,6 @@ function InstallationsPage() {
               <tr>
                 <th className="px-4 py-3 font-medium">Instalação</th>
                 <th className="px-4 py-3 font-medium">Vendedor</th>
-                <th className="px-4 py-3 font-medium">Conta</th>
                 <th className="px-4 py-3 font-medium">Último uso</th>
                 <th className="px-4 py-3 font-medium">Status</th>
               </tr>
@@ -171,7 +170,7 @@ function InstallationsPage() {
             <tbody>
               {installations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                  <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
                     Nenhuma instalação cadastrada.
                   </td>
                 </tr>
@@ -183,7 +182,6 @@ function InstallationsPage() {
                       <div className="font-mono text-xs text-muted-foreground">{item.id}</div>
                     </td>
                     <td className="px-4 py-3">{item.person_name}</td>
-                    <td className="px-4 py-3">{item.linkedin_account}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {item.last_used_at
                         ? new Date(item.last_used_at).toLocaleString("pt-BR")
