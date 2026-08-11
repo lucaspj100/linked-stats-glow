@@ -82,3 +82,10 @@ button:hover { background: #1d4ed8; }
 
 .info dt { color: var(--muted); margin: 0; }
 .info dd { margin: 0; font-weight: 600; text-align: right; }
+
+button.secondary {
+  background: transparent;
+  color: #2563eb;
+  border: 1px solid #cbd5e1;
+  margin-top: 8px;
+}
