@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "LinkedIn Message Tracker",
+  "version": "1.0.0",
+  "description": "Conta mensagens enviadas manualmente no LinkedIn e registra no painel LinkedIn Message Tracker.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://duljnccbjhgptnbysaje.supabase.co/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html" },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.linkedin.com/messaging/*",
+        "https://www.linkedin.com/in/*",
+        "https://www.linkedin.com/feed/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}
