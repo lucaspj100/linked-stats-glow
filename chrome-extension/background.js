@@ -37,17 +37,12 @@ async function recordEvent({ url, eventId }) {
   const payload = {
     installation_id: installationId.trim(),
     installation_token: installationToken.trim(),
-    // event_id gerado na extensão: o backend tem índice UNIQUE e ignora duplicados.
     event_id: eventId || crypto.randomUUID(),
     person_name: sellerName.trim(),
-    // Contagem é por vendedor: não distinguimos perfis do LinkedIn.
     linkedin_account: "Geral",
     sent_at: new Date().toISOString(),
     url: (url || "").slice(0, 2000),
   };
-
-
-  console.log("[LinkedIn Tracker] enviando evento", { ...payload, installation_token: "***" });
 
   try {
     const res = await fetch(ENDPOINT, {
@@ -64,12 +59,10 @@ async function recordEvent({ url, eventId }) {
     }
 
     if (body.duplicate) {
-      console.log("[LinkedIn Tracker] evento duplicado ignorado pelo backend", payload.event_id);
       return { ok: true, duplicate: true };
     }
 
     await bumpLocalCounter();
-    console.log("[LinkedIn Tracker] evento registrado", payload.event_id);
     return { ok: true };
   } catch (err) {
     console.error("[LinkedIn Tracker] erro de rede ao registrar evento", err);
@@ -84,7 +77,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   if (message?.type === "MESSAGE_SENT") {
     recordEvent(message).then(sendResponse);
-    return true; // resposta assíncrona
+    return true;
   }
   if (message?.type === "TEST_EVENT") {
     recordEvent({ url: "https://www.linkedin.com/messaging/", eventId: crypto.randomUUID() }).then(

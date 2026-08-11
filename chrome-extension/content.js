@@ -9,8 +9,6 @@
   const processedEvents = new WeakSet(); // evita processar o mesmo Event 2x
   let lastFocusedComposer = null;
 
-  console.log(`${TAG} content script ativo`, location.href);
-
   function isVisible(el) {
     if (!el || !(el instanceof Element)) return false;
     if (el.getAttribute("aria-disabled") === "true" || el.disabled) return false;
@@ -126,34 +124,23 @@
 
   // Busca progressiva por ancestrais + fallback por proximidade visual
   function findComposerForSendButton(button) {
-    console.log(`${TAG} procurando composer para botão`);
     const btnRect = button.getBoundingClientRect();
 
     let node = button;
     let level = 0;
     while (node && level <= MAX_ANCESTOR_LEVELS) {
-      console.log(`${TAG} ancestral nível ${level}`);
       const candidates = collectCandidates(node);
-      console.log(`${TAG} candidatos encontrados: ${candidates.length}`);
       const best = pickBest(candidates, btnRect);
-      if (best) {
-        console.log(`${TAG} composer encontrado por ancestral`);
-        return best;
-      }
+      if (best) return best;
       node = node.parentElement;
       level += 1;
     }
 
     // Fallback: qualquer composer visível na página, mais próximo do botão
     const all = collectCandidates(document);
-    console.log(`${TAG} candidatos encontrados: ${all.length}`);
     const near = pickBest(all, btnRect);
-    if (near) {
-      console.log(`${TAG} composer encontrado por proximidade`);
-      return near;
-    }
+    if (near) return near;
 
-    console.log(`${TAG} nenhum composer encontrado`);
     return null;
   }
 
@@ -167,7 +154,6 @@
       isVisible(lastFocusedComposer) &&
       textOf(lastFocusedComposer).length > 0
     ) {
-      console.log(`${TAG} usando lastFocusedComposer`);
       return lastFocusedComposer;
     }
 
@@ -220,10 +206,7 @@
       if (!(node instanceof Element)) continue;
       const role = (node.getAttribute?.("role") || "").toLowerCase();
       if (node.tagName !== "BUTTON" && role !== "button") continue;
-      if (isSendButtonEl(node)) {
-        console.log(`${TAG} botão Enviar encontrado via composedPath`);
-        return node;
-      }
+      if (isSendButtonEl(node)) return node;
       return false;
     }
     return isSendButton(event.target);
@@ -234,11 +217,9 @@
     const now = Date.now();
     const last = recent.get(key) || 0;
     if (now - last < DEDUPE_MS) {
-      console.log(`${TAG} envio ignorado por deduplicação (${reason})`);
       return;
     }
     recent.set(key, now);
-    console.log(`${TAG} envio confirmado (${reason})`);
 
     chrome.runtime.sendMessage(
       { type: "MESSAGE_SENT", url: location.href, eventId: crypto.randomUUID() },
@@ -251,7 +232,6 @@
           console.error(`${TAG} erro ao registrar evento`, response?.error);
           return;
         }
-        console.log(`${TAG} MESSAGE_SENT enviado ao background`, response.duplicate ? "(duplicado)" : "");
       },
     );
   }
@@ -264,18 +244,14 @@
     if (!event.isTrusted) return;
     if (processedEvents.has(event)) return;
     processedEvents.add(event);
-    console.log(`${TAG} click global capturado (${origin})`);
 
     const btn = sendButtonFromEvent(event);
     if (!btn) return;
-    console.log(`${TAG} clique detectado`);
-    console.log(`${TAG} botão enviar identificado`);
 
     const composer = resolveComposerForButton(btn, event);
     if (!composer) return;
 
     const hadText = textOf(composer).length > 0;
-    console.log(`${TAG} texto existente antes do envio: ${hadText ? "sim" : "não"}`);
     if (!hadText) return;
     confirmSend(composer, "clique em Enviar");
   }
@@ -286,22 +262,15 @@
     if (processedEvents.has(event)) return;
     processedEvents.add(event);
 
-    console.log(`${TAG} keydown global capturado (${origin})`);
-    console.log(`${TAG} tecla: Enter`);
     if (event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
 
     let composer = getComposerFromEvent(event);
-    console.log(`${TAG} composedPath contém editor: ${composer ? "sim" : "não"}`);
     if (!composer && lastFocusedComposer && lastFocusedComposer.isConnected) {
-      console.log(`${TAG} usando lastFocusedComposer`);
       composer = lastFocusedComposer;
     }
     if (!composer) return;
-    console.log(`${TAG} Enter detectado`);
-    console.log(`${TAG} composer encontrado`);
 
     const beforeLen = textOf(composer).length;
-    console.log(`${TAG} texto existente antes do envio: ${beforeLen > 0 ? "sim" : "não"}`);
     if (beforeLen === 0) return;
 
     watchForSendEvidence(composer, beforeLen);
@@ -321,12 +290,9 @@
     const path = pathOf(event);
     const editor = editableFromPath(path) || (event.target instanceof Element ? event.target.closest?.('[contenteditable="true"], textarea, [role="textbox"]') : null);
     if (!editor) return;
-    console.log(`${TAG} foco em possível editor`);
     if (!isComposerCandidate(editor)) return;
-    console.log(`${TAG} editor ativo identificado`);
     lastFocusedComposer = editor;
     registerComposer(editor);
-    console.log(`${TAG} listeners instalados no editor ativo`);
   }
 
   window.addEventListener("focusin", trackFocus, true);
@@ -334,8 +300,6 @@
 
   // Observa evidências de envio após um Enter válido (máx. 1,5s).
   function watchForSendEvidence(composer, beforeLen) {
-    console.log(`${TAG} Enter aguardando confirmação`);
-
     const convo =
       composer.closest(
         '[class*="msg-form"], form, [class*="msg-convo"], [class*="msg-overlay"], [class*="messaging"]',
@@ -348,8 +312,6 @@
       if (done) return;
       done = true;
       cleanup();
-      console.log(`${TAG} ${reason}`);
-      console.log(`${TAG} Enter confirmado`);
       confirmSend(composer, "Enter no composer");
     };
 
@@ -373,7 +335,6 @@
       if (done) return;
       done = true;
       cleanup();
-      console.log(`${TAG} Enter não confirmado após timeout`);
     }, 1500);
 
     function cleanup() {
@@ -411,9 +372,7 @@
       if (boundButtons.has(b)) continue;
       if (!isSendButtonEl(b)) continue;
       boundButtons.add(b);
-      console.log(`${TAG} listener direto instalado no botão enviar`);
       b.addEventListener("click", (event) => {
-        console.log(`${TAG} clique direto detectado`);
         handleClickEvent(event, "botão");
       }, true);
     }
@@ -423,12 +382,9 @@
     if (!el || boundComposers.has(el)) return;
     if (!isComposerCandidate(el)) return;
     boundComposers.add(el);
-    console.log(`${TAG} chat/composer dinâmico detectado`);
     el.addEventListener("keydown", (event) => {
-      console.log(`${TAG} Enter direto detectado`);
       handleKeydownEvent(event, "composer");
     }, true);
-    console.log(`${TAG} listener direto instalado no composer`);
 
     bindSendButtons(chatContainerOf(el));
     el.addEventListener("input", () => bindSendButtons(chatContainerOf(el)), true);
