@@ -50,7 +50,7 @@
     console.log("[LinkedIn Tracker] evento confirmado", reason);
 
     chrome.runtime.sendMessage(
-      { type: "MESSAGE_SENT", url: location.href },
+      { type: "MESSAGE_SENT", url: location.href, eventId: crypto.randomUUID() },
       (response) => {
         if (chrome.runtime.lastError) {
           console.error("[LinkedIn Tracker] erro ao registrar evento", chrome.runtime.lastError.message);
