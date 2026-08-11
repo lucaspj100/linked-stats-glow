@@ -78,6 +78,10 @@ async function recordEvent({ url, eventId }) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "PING") {
+    sendResponse({ ok: true, at: Date.now() });
+    return false;
+  }
   if (message?.type === "MESSAGE_SENT") {
     recordEvent(message).then(sendResponse);
     return true; // resposta assíncrona
