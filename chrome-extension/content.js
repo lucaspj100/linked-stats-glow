@@ -261,4 +261,131 @@
       clearTimeout(timer);
     }
   }
+
+  // ----------------------------------------------------------------
+  // Captura dinâmica (chat flutuante, overlays, shadow roots, iframes)
+  // ----------------------------------------------------------------
+
+  const boundComposers = new WeakSet();
+  const boundButtons = new WeakSet();
+  const observedRoots = new WeakSet();
+
+  function handleEnterOn(composer, event) {
+    if (!event.isTrusted) return;
+    if (event.key !== "Enter") return;
+    if (event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
+    if (!isComposerCandidate(composer)) return;
+    console.log(`${TAG} Enter direto detectado`);
+    const beforeLen = textOf(composer).length;
+    console.log(`${TAG} texto existente antes do envio: ${beforeLen > 0 ? "sim" : "não"}`);
+    if (beforeLen === 0) return;
+    watchForSendEvidence(composer, beforeLen);
+  }
+
+  function chatContainerOf(el) {
+    return (
+      el.closest(
+        '[class*="msg-form"], form, [class*="msg-convo"], [class*="msg-overlay"], [class*="messaging"]',
+      ) || el.parentElement
+    );
+  }
+
+  function bindSendButtons(container, composer) {
+    if (!container) return;
+    const buttons = container.querySelectorAll('button, [role="button"]');
+    for (const b of buttons) {
+      if (boundButtons.has(b)) continue;
+      if (!isSendButton(b)) continue;
+      boundButtons.add(b);
+      console.log(`${TAG} listener direto instalado no botão enviar`);
+      b.addEventListener(
+        "click",
+        (event) => {
+          if (!event.isTrusted) return;
+          console.log(`${TAG} clique direto detectado`);
+          const target = composer && composer.isConnected ? composer : findComposerForSendButton(b);
+          if (!target) return;
+          const hadText = textOf(target).length > 0;
+          console.log(`${TAG} texto existente antes do envio: ${hadText ? "sim" : "não"}`);
+          if (!hadText) return;
+          confirmSend(target, "clique direto em Enviar");
+        },
+        true,
+      );
+    }
+  }
+
+  function registerComposer(el) {
+    if (!el || boundComposers.has(el)) return;
+    if (!isComposerCandidate(el)) return;
+    boundComposers.add(el);
+    console.log(`${TAG} chat/composer dinâmico detectado`);
+    el.addEventListener("keydown", (event) => handleEnterOn(el, event), true);
+    console.log(`${TAG} listener direto instalado no composer`);
+
+    const container = chatContainerOf(el);
+    bindSendButtons(container, el);
+    // botões podem ser habilitados/inseridos depois que o usuário digita
+    el.addEventListener("input", () => bindSendButtons(chatContainerOf(el), el), true);
+  }
+
+  function scanRoot(root) {
+    if (!root || !root.querySelectorAll) return;
+    let nodes;
+    try {
+      nodes = root.querySelectorAll('[contenteditable="true"], [role="textbox"], textarea');
+    } catch {
+      return;
+    }
+    for (const n of nodes) registerComposer(n);
+
+    // shadow roots abertos
+    let all;
+    try {
+      all = root.querySelectorAll("*");
+    } catch {
+      return;
+    }
+    for (const el of all) {
+      if (el.shadowRoot) {
+        observeRoot(el.shadowRoot);
+        scanRoot(el.shadowRoot);
+      }
+    }
+  }
+
+  function observeRoot(root) {
+    if (!root || observedRoots.has(root)) return;
+    observedRoots.add(root);
+    const obs = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          if (!(node instanceof Element)) continue;
+          registerComposer(node);
+          scanRoot(node);
+        }
+      }
+    });
+    obs.observe(root, { childList: true, subtree: true });
+  }
+
+  function boot() {
+    observeRoot(document.body || document.documentElement);
+    scanRoot(document);
+    // iframes same-origin (chat flutuante em alguns layouts)
+    for (const frame of document.querySelectorAll("iframe")) {
+      try {
+        const doc = frame.contentDocument;
+        if (!doc) continue;
+        observeRoot(doc.body || doc.documentElement);
+        scanRoot(doc);
+      } catch {
+        /* cross-origin: ignorado */
+      }
+    }
+  }
+
+  boot();
+  setInterval(boot, 3000);
 })();
+
