@@ -3,6 +3,7 @@
 
 (() => {
   const WIDGET_ID = "linkedin-message-tracker-widget";
+  if (window.top !== window) return; // só no frame principal
   if (document.getElementById(WIDGET_ID)) return;
   if (window.__lmtWidgetBooted) return;
   window.__lmtWidgetBooted = true;
