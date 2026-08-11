@@ -27,7 +27,6 @@ export const listInstallations = createServerFn({ method: "GET" })
 const createSchema = z.object({
   label: z.string().trim().min(1).max(80),
   personName: z.string().trim().min(1).max(120),
-  linkedinAccount: z.string().trim().min(1).max(120),
 });
 
 export const createInstallation = createServerFn({ method: "POST" })
@@ -43,11 +42,13 @@ export const createInstallation = createServerFn({ method: "POST" })
       .insert({
         label: data.label,
         person_name: data.personName,
-        linkedin_account: data.linkedinAccount,
+        // Coluna mantida por compatibilidade: a contagem é por vendedor.
+        linkedin_account: "Geral",
         token_hash: await sha256Hex(token),
       })
       .select("id")
       .single();
+
 
     if (error || !row) throw new Error("Não foi possível criar a instalação.");
     // O token em texto claro é retornado UMA única vez.

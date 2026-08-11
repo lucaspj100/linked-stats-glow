@@ -10,40 +10,35 @@ function todayKey() {
 async function render() {
   const {
     sellerName = "",
-    linkedinAccount = "",
     installationId = "",
     installationToken = "",
     dailyCounts = {},
   } = await chrome.storage.local.get([
     "sellerName",
-    "linkedinAccount",
     "installationId",
     "installationToken",
     "dailyCounts",
   ]);
 
   $("seller").value = sellerName;
-  $("account").value = linkedinAccount;
   $("installation-id").value = installationId;
   $("installation-token").value = installationToken;
   $("seller-value").textContent = sellerName || "—";
-  $("account-value").textContent = linkedinAccount || "—";
   $("install-value").textContent = installationId
     ? `${installationId.slice(0, 8)}… ${installationToken ? "(token salvo)" : "(sem token)"}`
     : "—";
   $("count-value").textContent = String(dailyCounts[todayKey()] || 0);
 
-  const configured = Boolean(sellerName && linkedinAccount && installationId && installationToken);
+  const configured = Boolean(sellerName && installationId && installationToken);
   $("status").textContent = configured
     ? "Status: Monitoramento ativo"
-    : "Status: configure vendedor, conta e credenciais da instalação";
+    : "Status: configure vendedor e credenciais da instalação";
   $("status").style.color = configured ? "#2563eb" : "#b45309";
 }
 
 $("save").addEventListener("click", async () => {
   await chrome.storage.local.set({
     sellerName: $("seller").value.trim(),
-    linkedinAccount: $("account").value.trim(),
     installationId: $("installation-id").value.trim(),
     installationToken: $("installation-token").value.trim(),
   });
