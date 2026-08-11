@@ -94,7 +94,7 @@ function InstallationsPage() {
           className="mt-8 rounded-xl border bg-card p-6 shadow-sm"
         >
           <h2 className="text-sm font-medium">Nova instalação</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="text-sm">
               <span className="mb-1 block text-muted-foreground">Identificação</span>
               <input
@@ -102,7 +102,7 @@ function InstallationsPage() {
                 maxLength={80}
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
-                placeholder="Notebook da Isabella"
+                placeholder="Notebook do Lucas"
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
               />
             </label>
@@ -113,22 +113,12 @@ function InstallationsPage() {
                 maxLength={120}
                 value={personName}
                 onChange={(e) => setPersonName(e.target.value)}
-                placeholder="Isabella"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block text-muted-foreground">Conta do LinkedIn</span>
-              <input
-                required
-                maxLength={120}
-                value={linkedinAccount}
-                onChange={(e) => setLinkedinAccount(e.target.value)}
-                placeholder="LinkedIn Isabella"
+                placeholder="Lucas"
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
               />
             </label>
           </div>
+
           {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
           <button
             type="submit"
