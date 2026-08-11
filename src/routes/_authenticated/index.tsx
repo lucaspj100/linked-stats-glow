@@ -238,8 +238,9 @@ function Dashboard() {
             <div className="border-b border-border px-6 py-4">
               <h2 className="text-sm font-semibold text-foreground">Ranking por vendedor</h2>
               <p className="text-xs text-muted-foreground">
-                Clique em um vendedor para ver o detalhamento por conta do LinkedIn.
+                Total de mensagens por vendedor, somando todos os perfis do LinkedIn.
               </p>
+
             </div>
             <SellerRanking rows={ranking} />
           </div>

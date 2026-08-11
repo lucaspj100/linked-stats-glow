@@ -51,7 +51,6 @@ function InstallationsPage() {
 
   const [label, setLabel] = useState("");
   const [personName, setPersonName] = useState("");
-  const [linkedinAccount, setLinkedinAccount] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState<{ installationId: string; token: string } | null>(null);
@@ -61,11 +60,10 @@ function InstallationsPage() {
     setPending(true);
     setError("");
     try {
-      const result = await create({ data: { label, personName, linkedinAccount } });
+      const result = await create({ data: { label, personName } });
       setCreated(result);
       setLabel("");
       setPersonName("");
-      setLinkedinAccount("");
       await queryClient.invalidateQueries({ queryKey: ["installations"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar instalação.");
@@ -73,6 +71,7 @@ function InstallationsPage() {
       setPending(false);
     }
   }
+
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -95,7 +94,7 @@ function InstallationsPage() {
           className="mt-8 rounded-xl border bg-card p-6 shadow-sm"
         >
           <h2 className="text-sm font-medium">Nova instalação</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="text-sm">
               <span className="mb-1 block text-muted-foreground">Identificação</span>
               <input
@@ -103,7 +102,7 @@ function InstallationsPage() {
                 maxLength={80}
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
-                placeholder="Notebook da Isabella"
+                placeholder="Notebook do Lucas"
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
               />
             </label>
@@ -114,22 +113,12 @@ function InstallationsPage() {
                 maxLength={120}
                 value={personName}
                 onChange={(e) => setPersonName(e.target.value)}
-                placeholder="Isabella"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block text-muted-foreground">Conta do LinkedIn</span>
-              <input
-                required
-                maxLength={120}
-                value={linkedinAccount}
-                onChange={(e) => setLinkedinAccount(e.target.value)}
-                placeholder="LinkedIn Isabella"
+                placeholder="Lucas"
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
               />
             </label>
           </div>
+
           {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
           <button
             type="submit"
@@ -174,7 +163,6 @@ function InstallationsPage() {
               <tr>
                 <th className="px-4 py-3 font-medium">Instalação</th>
                 <th className="px-4 py-3 font-medium">Vendedor</th>
-                <th className="px-4 py-3 font-medium">Conta</th>
                 <th className="px-4 py-3 font-medium">Último uso</th>
                 <th className="px-4 py-3 font-medium">Status</th>
               </tr>
@@ -182,7 +170,7 @@ function InstallationsPage() {
             <tbody>
               {installations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                  <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
                     Nenhuma instalação cadastrada.
                   </td>
                 </tr>
@@ -194,7 +182,6 @@ function InstallationsPage() {
                       <div className="font-mono text-xs text-muted-foreground">{item.id}</div>
                     </td>
                     <td className="px-4 py-3">{item.person_name}</td>
-                    <td className="px-4 py-3">{item.linkedin_account}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {item.last_used_at
                         ? new Date(item.last_used_at).toLocaleString("pt-BR")

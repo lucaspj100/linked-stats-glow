@@ -21,18 +21,12 @@ async function bumpLocalCounter() {
 async function recordEvent({ url, eventId }) {
   const {
     sellerName = "",
-    linkedinAccount = "",
     installationId = "",
     installationToken = "",
-  } = await chrome.storage.local.get([
-    "sellerName",
-    "linkedinAccount",
-    "installationId",
-    "installationToken",
-  ]);
+  } = await chrome.storage.local.get(["sellerName", "installationId", "installationToken"]);
 
-  if (!sellerName.trim() || !linkedinAccount.trim()) {
-    console.warn("[LinkedIn Tracker] vendedor/conta não configurados no popup");
+  if (!sellerName.trim()) {
+    console.warn("[LinkedIn Tracker] vendedor não configurado no popup");
     return { ok: false, error: "not_configured" };
   }
   if (!installationId.trim() || !installationToken.trim()) {
@@ -46,10 +40,12 @@ async function recordEvent({ url, eventId }) {
     // event_id gerado na extensão: o backend tem índice UNIQUE e ignora duplicados.
     event_id: eventId || crypto.randomUUID(),
     person_name: sellerName.trim(),
-    linkedin_account: linkedinAccount.trim(),
+    // Contagem é por vendedor: não distinguimos perfis do LinkedIn.
+    linkedin_account: "Geral",
     sent_at: new Date().toISOString(),
     url: (url || "").slice(0, 2000),
   };
+
 
   console.log("[LinkedIn Tracker] enviando evento", { ...payload, installation_token: "***" });
 
