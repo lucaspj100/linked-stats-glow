@@ -146,6 +146,12 @@ function Dashboard() {
               <Radio className="size-3.5" />
               {live ? "Tempo real ativo" : "Conectando…"}
             </span>
+            <Link
+              to="/instalacoes"
+              className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              Instalações
+            </Link>
             <button
               type="button"
               onClick={async () => {
