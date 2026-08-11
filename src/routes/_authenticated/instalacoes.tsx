@@ -51,7 +51,6 @@ function InstallationsPage() {
 
   const [label, setLabel] = useState("");
   const [personName, setPersonName] = useState("");
-  const [linkedinAccount, setLinkedinAccount] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState<{ installationId: string; token: string } | null>(null);
@@ -61,11 +60,10 @@ function InstallationsPage() {
     setPending(true);
     setError("");
     try {
-      const result = await create({ data: { label, personName, linkedinAccount } });
+      const result = await create({ data: { label, personName } });
       setCreated(result);
       setLabel("");
       setPersonName("");
-      setLinkedinAccount("");
       await queryClient.invalidateQueries({ queryKey: ["installations"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar instalação.");
@@ -73,6 +71,7 @@ function InstallationsPage() {
       setPending(false);
     }
   }
+
 
   return (
     <div className="min-h-screen bg-muted/30">
