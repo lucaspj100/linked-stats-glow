@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+    <title>LinkedIn Message Tracker</title>
+  </head>
+  <body>
+    <header>
+      <h1>LinkedIn Message Tracker</h1>
+      <p class="status" id="status">Monitoramento ativo</p>
+    </header>
+
+    <main>
+      <label for="seller">Nome do vendedor</label>
+      <input id="seller" type="text" placeholder="Lucas" autocomplete="off" />
+
+      <label for="account">Conta do LinkedIn</label>
+      <input id="account" type="text" placeholder="LinkedIn Isabella" autocomplete="off" />
+
+      <button id="save" type="button">Salvar configuração</button>
+      <p class="saved" id="saved"></p>
+
+      <dl class="info">
+        <dt>Vendedor configurado</dt>
+        <dd id="seller-value">—</dd>
+        <dt>Conta configurada</dt>
+        <dd id="account-value">—</dd>
+        <dt>Mensagens detectadas hoje</dt>
+        <dd id="count-value">0</dd>
+      </dl>
+    </main>
+  </body>
+  <script src="popup.js"></script>
+</html>
