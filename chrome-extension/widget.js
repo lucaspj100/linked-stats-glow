@@ -1,195 +1,244 @@
-// LinkedIn Message Tracker - widget flutuante informativo
-// Apenas exibe status e contador local. NÃO interage com o LinkedIn.
+// LinkedIn Message Tracker - widget flutuante discreto no LinkedIn
+// Não captura mensagens. Apenas exibe status e contador para o vendedor.
 
-(() => {
+(function () {
   const WIDGET_ID = "linkedin-message-tracker-widget";
-  if (window.top !== window) return; // só no frame principal
   if (document.getElementById(WIDGET_ID)) return;
-  if (window.__lmtWidgetBooted) return;
-  window.__lmtWidgetBooted = true;
-
-  const TAG = "[LinkedIn Tracker]";
-
-  function todayKey() {
-    const d = new Date();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${d.getFullYear()}-${m}-${day}`;
-  }
 
   const host = document.createElement("div");
   host.id = WIDGET_ID;
-  host.style.cssText = [
-    "all:initial",
-    "position:fixed",
-    "right:16px",
-    "bottom:120px",
-    "z-index:2147483000",
-    "width:auto",
-  ].join(";");
+  host.style.cssText =
+    "all:initial;position:fixed;right:16px;bottom:120px;z-index:2147483000;width:auto;";
 
   const shadow = host.attachShadow({ mode: "open" });
-  shadow.innerHTML = `
-    <style>
-      :host { all: initial; }
-      * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
-      .card {
-        background: #ffffff;
-        color: #0f172a;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        box-shadow: 0 6px 24px rgba(15, 23, 42, 0.16);
-        padding: 10px 12px;
-        min-width: 168px;
-        max-width: 220px;
-        font-size: 12px;
-        line-height: 1.35;
-      }
-      .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-      .title { font-weight: 700; font-size: 12px; letter-spacing: .2px; }
-      .min-btn {
-        border: none; background: transparent; cursor: pointer; color: #64748b;
-        font-size: 14px; line-height: 1; padding: 2px 4px; border-radius: 6px;
-      }
-      .min-btn:hover { background: #f1f5f9; }
-      .status { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: 600; }
-      .dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; flex: none; }
-      .ok .dot { background: #16a34a; } .ok { color: #16a34a; }
-      .bad .dot { background: #ea580c; } .bad { color: #ea580c; }
-      .wait .dot { background: #94a3b8; } .wait { color: #64748b; }
-      .count { margin-top: 6px; font-size: 13px; font-weight: 700; color: #1d4ed8; }
-      .muted { margin-top: 4px; color: #64748b; font-size: 11px; font-weight: 500; }
-      .pill {
-        display: flex; align-items: center; gap: 6px; cursor: pointer;
-        background: #ffffff; border: 1px solid #e2e8f0; border-radius: 999px;
-        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.16);
-        padding: 6px 10px; font-size: 12px; font-weight: 700; color: #0f172a;
-      }
-      .hidden { display: none; }
-    </style>
-    <div class="card" id="card">
-      <div class="row">
-        <span class="title">LinkedIn Tracker</span>
-        <button class="min-btn" id="minimize" title="Minimizar" aria-label="Minimizar">—</button>
-      </div>
-      <div class="status wait" id="status"><span class="dot"></span><span id="status-text">Verificando…</span></div>
-      <div class="count" id="count">Hoje: 0</div>
-      <div class="muted hidden" id="seller"></div>
-      <div class="muted hidden" id="hint"></div>
-    </div>
-    <div class="pill hidden" id="pill"><span>LMT</span><span class="dot" id="pill-dot" style="width:8px;height:8px;border-radius:50%;background:#94a3b8;display:inline-block"></span><span id="pill-count">0</span></div>
+  const style = document.createElement("style");
+  style.textContent = `
+    :host { all: initial; }
+    .lmt-card {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      padding: 12px 14px;
+      min-width: 170px;
+      color: #111827;
+      font-size: 13px;
+      line-height: 1.35;
+      transition: opacity .2s ease, transform .2s ease;
+      cursor: default;
+      user-select: none;
+    }
+    .lmt-card.minimized {
+      min-width: auto;
+      padding: 8px 12px;
+      border-radius: 999px;
+    }
+    .lmt-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .lmt-title {
+      font-weight: 600;
+      font-size: 12px;
+      color: #374151;
+    }
+    .lmt-toggle {
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      color: #6b7280;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .lmt-body {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .lmt-body.hidden { display: none; }
+    .lmt-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+    .lmt-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .lmt-dot.active { background: #22c55e; }
+    .lmt-dot.inactive { background: #ef4444; }
+    .lmt-dot.checking { background: #f59e0b; }
+    .lmt-count {
+      font-size: 20px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .lmt-label {
+      font-size: 11px;
+      color: #6b7280;
+    }
+    .lmt-seller {
+      font-size: 11px;
+      color: #374151;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+    .lmt-hint {
+      font-size: 10px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
   `;
 
-  const $ = (id) => shadow.getElementById(id);
+  const card = document.createElement("div");
+  card.className = "lmt-card";
 
-  function mount() {
-    const parent = document.body || document.documentElement;
-    if (!parent) return;
-    if (!host.isConnected) parent.appendChild(host);
-  }
+  const header = document.createElement("div");
+  header.className = "lmt-header";
+  const title = document.createElement("span");
+  title.className = "lmt-title";
+  title.textContent = "LMT";
+  const toggle = document.createElement("button");
+  toggle.className = "lmt-toggle";
+  toggle.setAttribute("aria-label", "Minimizar ou expandir");
+  toggle.textContent = "−";
+  header.appendChild(title);
+  header.appendChild(toggle);
+
+  const body = document.createElement("div");
+  body.className = "lmt-body";
+
+  const status = document.createElement("div");
+  status.className = "lmt-status";
+  const dot = document.createElement("span");
+  dot.className = "lmt-dot checking";
+  const statusText = document.createElement("span");
+  statusText.textContent = "Verificando...";
+  status.appendChild(dot);
+  status.appendChild(statusText);
+
+  const count = document.createElement("div");
+  count.className = "lmt-count";
+  count.textContent = "0";
+
+  const label = document.createElement("div");
+  label.className = "lmt-label";
+  label.textContent = "mensagens hoje";
+
+  const seller = document.createElement("div");
+  seller.className = "lmt-seller";
+  seller.textContent = "";
+
+  const hint = document.createElement("div");
+  hint.className = "lmt-hint";
+  hint.textContent = "Clique na extensão para configurar";
+
+  body.appendChild(status);
+  body.appendChild(count);
+  body.appendChild(label);
+  body.appendChild(seller);
+  body.appendChild(hint);
+
+  card.appendChild(header);
+  card.appendChild(body);
+  shadow.appendChild(style);
+  shadow.appendChild(card);
 
   let minimized = false;
+  chrome.storage.local.get("lmtWidgetMinimized").then(({ lmtWidgetMinimized }) => {
+    minimized = !!lmtWidgetMinimized;
+    applyMinimized();
+  });
 
   function applyMinimized() {
-    $("card").classList.toggle("hidden", minimized);
-    $("pill").classList.toggle("hidden", !minimized);
-  }
-
-  $("minimize").addEventListener("click", () => {
-    minimized = true;
-    applyMinimized();
-    chrome.storage.local.set({ widgetMinimized: true });
-  });
-  $("pill").addEventListener("click", () => {
-    minimized = false;
-    applyMinimized();
-    chrome.storage.local.set({ widgetMinimized: false });
-  });
-
-  function setStatus(kind, text, hint) {
-    const el = $("status");
-    el.className = `status ${kind}`;
-    $("status-text").textContent = text;
-    const color = kind === "ok" ? "#16a34a" : kind === "bad" ? "#ea580c" : "#94a3b8";
-    $("pill-dot").style.background = color;
-    const hintEl = $("hint");
-    if (hint) {
-      hintEl.textContent = hint;
-      hintEl.classList.remove("hidden");
+    if (minimized) {
+      card.classList.add("minimized");
+      body.classList.add("hidden");
+      title.textContent = `LMT ${count.textContent}`;
+      toggle.textContent = "+";
     } else {
-      hintEl.classList.add("hidden");
+      card.classList.remove("minimized");
+      body.classList.remove("hidden");
+      title.textContent = "LMT";
+      toggle.textContent = "−";
     }
   }
 
-  async function refresh() {
-    let data;
-    try {
-      data = await chrome.storage.local.get([
-        "sellerName",
-        "installationId",
-        "installationToken",
-        "dailyCounts",
-        "widgetMinimized",
-      ]);
-    } catch {
-      setStatus("bad", "Inativo", "Falha de conexão");
+  toggle.addEventListener("click", () => {
+    minimized = !minimized;
+    chrome.storage.local.set({ lmtWidgetMinimized: minimized });
+    applyMinimized();
+  });
+
+  function updateFromStorage(changes) {
+    if (changes.dailyCounts) {
+      const today = new Date();
+      const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const counts = changes.dailyCounts.newValue || {};
+      count.textContent = String(counts[key] || 0);
+      if (minimized) title.textContent = `LMT ${count.textContent}`;
+    }
+    if (changes.sellerName) {
+      seller.textContent = changes.sellerName.newValue || "";
+    }
+    if (changes.installationId || changes.installationToken) {
+      checkStatus();
+    }
+  }
+
+  async function checkStatus() {
+    const { sellerName = "", installationId = "", installationToken = "" } = await chrome.storage.local.get([
+      "sellerName",
+      "installationId",
+      "installationToken",
+    ]);
+
+    seller.textContent = sellerName || "";
+
+    if (!sellerName.trim() || !installationId.trim() || !installationToken.trim()) {
+      dot.className = "lmt-dot inactive";
+      statusText.textContent = "Inativo";
+      hint.textContent = "Clique na extensão para configurar";
       return;
     }
 
-    minimized = Boolean(data.widgetMinimized);
-    applyMinimized();
-
-    const count = (data.dailyCounts || {})[todayKey()] || 0;
-    $("count").textContent = `Hoje: ${count}`;
-    $("pill-count").textContent = String(count);
-
-    const seller = (data.sellerName || "").trim();
-    const sellerEl = $("seller");
-    if (seller) {
-      sellerEl.textContent = `Vendedor: ${seller}`;
-      sellerEl.classList.remove("hidden");
-    } else {
-      sellerEl.classList.add("hidden");
-    }
-
-    const configured = Boolean(
-      seller && (data.installationId || "").trim() && (data.installationToken || "").trim(),
-    );
-    if (!configured) {
-      setStatus("bad", "Inativo", "Clique na extensão para configurar");
-      return;
-    }
-
-    // Confere se o service worker responde
     try {
-      const pong = await chrome.runtime.sendMessage({ type: "PING" });
-      if (pong?.ok) setStatus("ok", "Ativo");
-      else setStatus("bad", "Inativo", "Falha de conexão");
-    } catch {
-      setStatus("bad", "Inativo", "Falha de conexão");
+      const res = await chrome.runtime.sendMessage({ type: "PING" });
+      if (res?.ok) {
+        dot.className = "lmt-dot active";
+        statusText.textContent = "Ativo";
+        hint.textContent = "Monitorando envios manuais";
+      } else {
+        throw new Error("ping failed");
+      }
+    } catch (err) {
+      dot.className = "lmt-dot inactive";
+      statusText.textContent = "Falha de conexão";
+      hint.textContent = "Tente recarregar a extensão";
     }
   }
 
-  try {
-    chrome.storage.onChanged.addListener(() => refresh());
-  } catch {
-    /* ignore */
-  }
+  document.body.appendChild(host);
 
-  mount();
-  refresh();
-  console.log(`${TAG} widget flutuante ativo`);
-  console.log(`${TAG} widget montado`, {
-    isConnected: host.isConnected,
-    position: getComputedStyle(host).position,
-    right: getComputedStyle(host).right,
-    bottom: getComputedStyle(host).bottom,
-    zIndex: getComputedStyle(host).zIndex,
+  chrome.storage.local.get(["dailyCounts", "sellerName"]).then(({ dailyCounts = {}, sellerName = "" }) => {
+    const today = new Date();
+    const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    count.textContent = String(dailyCounts[key] || 0);
+    seller.textContent = sellerName || "";
+    if (minimized) title.textContent = `LMT ${count.textContent}`;
   });
 
-  // Navegação SPA do LinkedIn pode remover o nó: reanexa sem duplicar.
-  setInterval(() => {
-    mount();
-    refresh();
-  }, 5000);
+  chrome.storage.onChanged.addListener(updateFromStorage);
+  checkStatus();
 })();

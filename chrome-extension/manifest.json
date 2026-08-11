@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LinkedIn Message Tracker",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Conta mensagens enviadas manualmente no LinkedIn e registra no painel LinkedIn Message Tracker.",
   "permissions": ["storage", "activeTab"],
   "host_permissions": ["https://project--275e3dec-0801-4821-952e-33dbf781aafe.lovable.app/*"],
