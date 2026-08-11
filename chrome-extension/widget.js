@@ -20,13 +20,12 @@
   const host = document.createElement("div");
   host.id = WIDGET_ID;
   host.style.cssText = [
+    "all:initial",
     "position:fixed",
     "right:16px",
     "bottom:120px",
     "z-index:2147483000",
     "width:auto",
-    "all:initial",
-    "position:fixed",
   ].join(";");
 
   const shadow = host.attachShadow({ mode: "open" });
@@ -180,6 +179,13 @@
   mount();
   refresh();
   console.log(`${TAG} widget flutuante ativo`);
+  console.log(`${TAG} widget montado`, {
+    isConnected: host.isConnected,
+    position: getComputedStyle(host).position,
+    right: getComputedStyle(host).right,
+    bottom: getComputedStyle(host).bottom,
+    zIndex: getComputedStyle(host).zIndex,
+  });
 
   // Navegação SPA do LinkedIn pode remover o nó: reanexa sem duplicar.
   setInterval(() => {
