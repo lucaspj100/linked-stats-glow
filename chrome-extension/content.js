@@ -202,19 +202,63 @@
       console.log(`${TAG} Enter detectado`);
       console.log(`${TAG} composer encontrado`);
 
-      const hadText = textOf(composer).length > 0;
-      console.log(`${TAG} texto existente antes do envio: ${hadText ? "sim" : "não"}`);
-      if (!hadText) return;
+      const beforeLen = textOf(composer).length;
+      console.log(`${TAG} texto existente antes do envio: ${beforeLen > 0 ? "sim" : "não"}`);
+      if (beforeLen === 0) return;
 
-      // Confirma só se o composer esvaziar (indício real de envio).
-      setTimeout(() => {
-        if (textOf(composer).length === 0) {
-          confirmSend(composer, "Enter no composer");
-        } else {
-          console.log(`${TAG} composer ainda com texto: envio não confirmado`);
-        }
-      }, 400);
+      watchForSendEvidence(composer, beforeLen);
     },
     true,
   );
+
+  // Observa evidências de envio após um Enter válido (máx. 1,5s).
+  function watchForSendEvidence(composer, beforeLen) {
+    console.log(`${TAG} Enter aguardando confirmação`);
+
+    const convo =
+      composer.closest(
+        '[class*="msg-form"], form, [class*="msg-convo"], [class*="msg-overlay"], [class*="messaging"]',
+      ) || composer.parentElement || document.body;
+
+    const initialChildren = convo.querySelectorAll("li, [class*='msg-s-event']").length;
+    let done = false;
+
+    const finish = (reason) => {
+      if (done) return;
+      done = true;
+      cleanup();
+      console.log(`${TAG} ${reason}`);
+      console.log(`${TAG} Enter confirmado`);
+      confirmSend(composer, "Enter no composer");
+    };
+
+    const check = () => {
+      if (done) return;
+      const detached = !composer.isConnected || composer.getAttribute("contenteditable") === "false";
+      if (textOf(composer).length === 0 || detached) {
+        finish("confirmação por campo vazio");
+        return;
+      }
+      const now = convo.querySelectorAll("li, [class*='msg-s-event']").length;
+      if (now > initialChildren) {
+        finish("confirmação por mudança estrutural");
+      }
+    };
+
+    const observer = new MutationObserver(check);
+    observer.observe(convo, { childList: true, subtree: true, characterData: true });
+    const interval = setInterval(check, 150);
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      cleanup();
+      console.log(`${TAG} Enter não confirmado após timeout`);
+    }, 1500);
+
+    function cleanup() {
+      observer.disconnect();
+      clearInterval(interval);
+      clearTimeout(timer);
+    }
+  }
 })();
