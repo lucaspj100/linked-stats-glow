@@ -1,9 +1,9 @@
-# Integração LinkedIn Message Tracker → CRM United
+# Integração LinkedIn Message Tracker → CRM United (Funil Pro)
 
-O Tracker fala com o CRM United apenas por HTTP server-to-server, com um segredo
+O Tracker fala com o CRM apenas por HTTP server-to-server, com um segredo
 compartilhado. Nenhuma chave administrativa do CRM fica no Tracker nem no navegador.
 
-## 1. Vínculo de vendedor por e-mail (já em produção)
+## 1. Vínculo de vendedor por e-mail
 
 1. Copie `find-seller-by-email.ts` para `src/routes/api/public/find-seller-by-email.ts` no CRM.
 2. Cadastre no CRM o secret `TRACKER_INTEGRATION_SECRET` com o mesmo valor de
@@ -11,35 +11,21 @@ compartilhado. Nenhuma chave administrativa do CRM fica no Tracker nem no navega
 
 O endpoint devolve no máximo 5 correspondências com `id`, `name`, `email`, `role`.
 
-## 2. Atividades automáticas de LinkedIn (novo)
+## 2. Atividades automáticas de LinkedIn — JÁ APLICADO NO CRM
 
-No projeto do CRM United:
+No CRM (projeto Funil Pro) isso já está em produção:
 
-1. Aplique a migration `linkedin-tracker-events.sql`. Ela:
-   - cria `public.linkedin_tracker_events` (`vendedor_id`, `source`, `external_event_id`,
-     `sent_at`, `installation_id`, `tracker_user_id`);
-   - cria índice único `(source, external_event_id)` → idempotência;
-   - habilita Realtime na tabela;
-   - atualiza `productivity_summary` para somar essas atividades ao valor já
-     existente de `linkedins_checkout`, usando `sent_at` convertido para
-     `America/Sao_Paulo` (mesmo fuso dos demais indicadores do Telão).
-2. Copie `linkedin-message-event.ts` para
-   `src/routes/api/public/linkedin-message-event.ts`.
-3. No Telão (`src/routes/_authenticated/placar-diario.tsx`), adicione a nova tabela
-   ao canal Realtime já existente, junto de `prospect_attempts`:
+- tabela `public.linkedin_message_events`
+  (`vendedor_id`, `source`, `external_event_id`, `sent_at`, `installation_id`,
+  `tracker_user_id`);
+- índice único `(source, external_event_id)` → idempotência;
+- Realtime habilitado na tabela;
+- `productivity_summary` soma essas atividades ao `linkedins_checkout`;
+- endpoint `src/routes/api/public/linkedin-message-event.ts` validando
+  `x-tracker-secret` e devolvendo `{ success: true, duplicate: true }` em reenvios.
 
-   ```ts
-   .on("postgres_changes", { event: "INSERT", schema: "public", table: "linkedin_tracker_events" }, () => {
-     void (async () => {
-       const { data } = await supabase.rpc("productivity_summary" as never, {
-         _start: range.start, _end: range.end, _vendedor_id: null, _team_id: teamId,
-       } as never);
-       if (Array.isArray(data)) setLive(data as unknown as ProductivityRow[]);
-     })();
-   })
-   ```
-
-4. Publique o CRM.
+Por isso não há mais migration a aplicar aqui. Qualquer ajuste nessa parte deve
+ser feito no próprio projeto do CRM.
 
 ### Pontuação
 
@@ -51,7 +37,7 @@ quantidade de LinkedIn, e `scoreOf` multiplica pelo peso atual de
 
 O checkout manual não gera mais LinkedIn; o valor de `daily_checkouts.linkedin_msgs`
 permanece para o histórico e é apenas somado. Novos eventos vêm exclusivamente de
-`linkedin_tracker_events` com `source = 'linkedin_tracker'`, o que evita duplicidade
+`linkedin_message_events` com `source = 'linkedin_tracker'`, o que evita duplicidade
 e preserva os registros manuais antigos.
 
 ## 3. Payload enviado pelo Tracker
