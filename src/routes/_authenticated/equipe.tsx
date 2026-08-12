@@ -68,6 +68,12 @@ function TeamPage() {
 
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<Profile | null>(null);
+  const [crmBusy, setCrmBusy] = useState<string | null>(null);
+  const [crmFeedback, setCrmFeedback] = useState<string | null>(null);
+  const [ambiguous, setAmbiguous] = useState<
+    { seller: Profile; result: CrmLinkAttemptResult } | null
+  >(null);
+
 
   const counts = useMemo(() => {
     const map = new Map<string, { today: number; month: number }>();
