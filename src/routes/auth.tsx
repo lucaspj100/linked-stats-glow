@@ -99,6 +99,15 @@ function AuthPage() {
           placeholder="Senha"
           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
         />
+        {mode === "signup" && (
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Telefone (opcional)"
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+        )}
 
         <button
           type="submit"
