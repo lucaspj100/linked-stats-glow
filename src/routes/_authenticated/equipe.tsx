@@ -204,6 +204,69 @@ function TeamPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-8">
+        {crmFeedback && (
+          <div
+            role="status"
+            className="mb-4 flex items-start justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground"
+          >
+            <span>{crmFeedback}</span>
+            <button
+              type="button"
+              onClick={() => setCrmFeedback(null)}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Fechar
+            </button>
+          </div>
+        )}
+
+        {ambiguous && (
+          <div className="mb-4 rounded-xl border border-border bg-card p-5">
+            <h2 className="text-sm font-semibold text-foreground">
+              Requer revisão · {ambiguous.seller.name}
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Mais de um vendedor do CRM United corresponde a {ambiguous.seller.email}. Escolha o
+              correto.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {ambiguous.result.candidates.map((candidate) => (
+                <li
+                  key={candidate.id}
+                  className="flex items-center justify-between gap-4 rounded-lg border border-border px-3 py-2"
+                >
+                  <div>
+                    <p className="text-sm text-foreground">{candidate.name || "Sem nome"}</p>
+                    <p className="text-xs text-muted-foreground">{candidate.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void chooseCandidate(
+                        ambiguous.seller,
+                        candidate.id,
+                        candidate.name,
+                        candidate.email,
+                      )
+                    }
+                    className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Vincular
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setAmbiguous(null)}
+              className="mt-3 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+
+
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
