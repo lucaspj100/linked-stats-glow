@@ -13,6 +13,7 @@ import { fetchMessageEvents } from "@/lib/message-events.functions";
 import { getCrmSyncSummary, reprocessCrmSync } from "@/lib/crm-sync.functions";
 import { sessionProfileQuery } from "@/lib/session-profile";
 import { countSince, startOfMonth, startOfToday } from "@/lib/analytics";
+import { useRealtimeMessageEvents } from "@/hooks/use-realtime-message-events";
 
 const CRM_STATUS: Record<string, { dot: string; label: string; className: string }> = {
   linked: { dot: "🟢", label: "Vinculado", className: "text-primary" },
@@ -66,6 +67,8 @@ function TeamPage() {
       fetchMessageEvents({ data: { since: startOfMonth().toISOString() } }),
     enabled: isAdmin,
   });
+
+  useRealtimeMessageEvents(["team-events", "crm-sync-summary"], "team-events-live");
 
   const [search, setSearch] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
