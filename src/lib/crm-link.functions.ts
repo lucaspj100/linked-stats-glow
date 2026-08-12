@@ -104,7 +104,7 @@ export const adminUnlinkCrm = createServerFn({ method: "POST" })
     const diagnostics: CrmLinkDiagnostics = {
       matched_crm_user_id: null,
       target_profile_id: data.profileId,
-      update_success: !updateError && Boolean(updated) && updated.crm_user_id === null && updated.crm_link_status === "unlinked",
+      update_success: !updateError && updated?.crm_user_id === null && updated?.crm_link_status === "unlinked",
       persisted_crm_user_id: updated?.crm_user_id ?? null,
       error_code: updateError?.code ?? (!updated ? "PROFILE_NOT_FOUND" : null),
     };
