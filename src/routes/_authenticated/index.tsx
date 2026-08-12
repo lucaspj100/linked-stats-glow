@@ -147,11 +147,27 @@ function Dashboard() {
               {live ? "Tempo real ativo" : "Conectando…"}
             </span>
             <Link
-              to="/instalacoes"
+              to="/perfil"
               className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
-              Instalações
+              Meu perfil
             </Link>
+            {isAdmin && (
+              <>
+                <Link
+                  to="/equipe"
+                  className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Equipe
+                </Link>
+                <Link
+                  to="/instalacoes"
+                  className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Instalações
+                </Link>
+              </>
+            )}
             <button
               type="button"
               onClick={async () => {
