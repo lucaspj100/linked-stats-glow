@@ -132,7 +132,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
   });
 
 /** Lista todos os vendedores — apenas administradores (validado no banco pela RLS). */
-export const listSellers = createServerFn({ method: "GET" })
+export const listSellers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<Profile[]> => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
