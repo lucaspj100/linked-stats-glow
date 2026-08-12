@@ -24,6 +24,8 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -31,20 +33,24 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
-    const { error } =
+    const { data, error } =
       mode === "signin"
         ? await supabase.auth.signInWithPassword({ email, password })
         : await supabase.auth.signUp({
             email,
             password,
-            options: { emailRedirectTo: `${window.location.origin}/` },
+            options: {
+              emailRedirectTo: `${window.location.origin}/`,
+              data: { full_name: fullName.trim(), phone: phone.trim() || null },
+            },
           });
     setLoading(false);
     if (error) {
       setMessage(error.message);
       return;
     }
-    if (mode === "signup") {
+    // Sem sessão => confirmação de e-mail está ativa; preservamos esse comportamento.
+    if (mode === "signup" && !data.session) {
       setMessage("Conta criada. Confirme o e-mail e faça login.");
       return;
     }
