@@ -65,17 +65,22 @@ export const Route = createFileRoute("/api/public/track-message")({
           return json({ ok: false, error: "unauthorized" }, 401);
         }
 
-        const { error: insertError } = await supabaseAdmin.from("message_events").insert({
-          event_id: parsed.event_id,
-          installation_id: install.id,
-          person_name: parsed.person_name,
-          linkedin_account: parsed.linkedin_account,
-          sent_at: parsed.sent_at,
-          url: parsed.url ?? null,
-        });
+        const { data: inserted, error: insertError } = await supabaseAdmin
+          .from("message_events")
+          .insert({
+            event_id: parsed.event_id,
+            installation_id: install.id,
+            person_name: parsed.person_name,
+            linkedin_account: parsed.linkedin_account,
+            sent_at: parsed.sent_at,
+            url: parsed.url ?? null,
+          })
+          .select("id, event_id, sent_at, installation_id, crm_sync_attempts")
+          .single();
 
         if (insertError) {
           // 23505 = violação de índice único (event_id) => evento duplicado.
+          // Duplicado nunca é reenviado ao CRM.
           if ((insertError as { code?: string }).code === "23505") {
             return json({ ok: true, duplicate: true });
           }
@@ -86,6 +91,13 @@ export const Route = createFileRoute("/api/public/track-message")({
           .from("extension_installations")
           .update({ last_used_at: new Date().toISOString() })
           .eq("id", install.id);
+
+        // Evento novo e persistido: tentativa imediata de criar a atividade no CRM.
+        // Qualquer falha apenas marca o evento como pendente para retentativa.
+        if (inserted) {
+          const { syncMessageEvent } = await import("@/lib/crm-activity.server");
+          await syncMessageEvent(inserted);
+        }
 
         return json({ ok: true, duplicate: false });
       },
