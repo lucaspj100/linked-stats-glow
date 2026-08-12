@@ -13,6 +13,7 @@ import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedMinhaExtensaoRouteImport } from './routes/_authenticated/minha-extensao'
 import { Route as AuthenticatedInstalacoesRouteImport } from './routes/_authenticated/instalacoes'
@@ -37,6 +38,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth_/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   id: '/perfil',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/instalacoes': typeof AuthenticatedInstalacoesRoute
   '/minha-extensao': typeof AuthenticatedMinhaExtensaoRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
 }
 export interface FileRoutesByTo {
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/instalacoes': typeof AuthenticatedInstalacoesRoute
   '/minha-extensao': typeof AuthenticatedMinhaExtensaoRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
 }
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/_authenticated/instalacoes': typeof AuthenticatedInstalacoesRoute
   '/_authenticated/minha-extensao': typeof AuthenticatedMinhaExtensaoRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
+  '/auth_/callback': typeof AuthCallbackRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
 }
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/instalacoes'
     | '/minha-extensao'
     | '/perfil'
+    | '/auth/callback'
     | '/api/public/track-message'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/instalacoes'
     | '/minha-extensao'
     | '/perfil'
+    | '/auth/callback'
     | '/'
     | '/api/public/track-message'
   id:
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instalacoes'
     | '/_authenticated/minha-extensao'
     | '/_authenticated/perfil'
+    | '/auth_/callback'
     | '/_authenticated/'
     | '/api/public/track-message'
   fileRoutesById: FileRoutesById
@@ -136,6 +148,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   ApiPublicTrackMessageRoute: typeof ApiPublicTrackMessageRoute
 }
 
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/auth_/callback': {
+      id: '/auth_/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/perfil': {
       id: '/_authenticated/perfil'
@@ -230,6 +250,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   ApiPublicTrackMessageRoute: ApiPublicTrackMessageRoute,
 }
 export const routeTree = rootRouteImport
