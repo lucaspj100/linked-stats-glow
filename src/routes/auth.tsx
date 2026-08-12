@@ -70,6 +70,18 @@ function AuthPage() {
           </p>
         </div>
 
+        {mode === "signup" && (
+          <input
+            type="text"
+            required
+            minLength={2}
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Nome completo"
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+        )}
+
         <input
           type="email"
           required
