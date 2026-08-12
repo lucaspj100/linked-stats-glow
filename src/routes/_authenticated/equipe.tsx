@@ -68,6 +68,8 @@ function TeamPage() {
     enabled: isAdmin,
   });
 
+  useRealtimeMessageEvents(["team-events", "crm-sync-summary"], "team-events-live");
+
   const [search, setSearch] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
   const [crmBusy, setCrmBusy] = useState<string | null>(null);
