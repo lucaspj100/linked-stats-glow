@@ -88,7 +88,9 @@ function AuthPage() {
         setMessage(friendlyError(error));
         if (
           error.code === "email_not_confirmed" ||
-          error.message.toLowerCase().includes("not confirmed")
+          error.message.toLowerCase().includes("not confirmed") ||
+          error.code === "invalid_credentials" ||
+          error.message.toLowerCase().includes("invalid login")
         ) {
           setNeedsConfirmation(true);
         }
