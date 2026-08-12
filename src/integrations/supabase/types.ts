@@ -100,6 +100,12 @@ export type Database = {
       message_events: {
         Row: {
           created_at: string
+          crm_last_error: string | null
+          crm_next_attempt_at: string
+          crm_sync_attempts: number
+          crm_sync_status: string
+          crm_synced_at: string | null
+          crm_user_id: string | null
           event_id: string | null
           id: string
           installation_id: string | null
@@ -110,6 +116,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          crm_last_error?: string | null
+          crm_next_attempt_at?: string
+          crm_sync_attempts?: number
+          crm_sync_status?: string
+          crm_synced_at?: string | null
+          crm_user_id?: string | null
           event_id?: string | null
           id?: string
           installation_id?: string | null
@@ -120,6 +132,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          crm_last_error?: string | null
+          crm_next_attempt_at?: string
+          crm_sync_attempts?: number
+          crm_sync_status?: string
+          crm_synced_at?: string | null
+          crm_user_id?: string | null
           event_id?: string | null
           id?: string
           installation_id?: string | null
