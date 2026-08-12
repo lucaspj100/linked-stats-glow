@@ -3,9 +3,23 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { listSellers, adminUpdateSeller, type Profile } from "@/lib/profiles.functions";
+import {
+  retryCrmLink,
+  adminSetCrmLink,
+  adminUnlinkCrm,
+  type CrmLinkAttemptResult,
+} from "@/lib/crm-link.functions";
 import { fetchMessageEvents } from "@/lib/message-events.functions";
 import { sessionProfileQuery } from "@/lib/session-profile";
 import { countSince, startOfMonth, startOfToday } from "@/lib/analytics";
+
+const CRM_STATUS: Record<string, { dot: string; label: string; className: string }> = {
+  linked: { dot: "🟢", label: "Vinculado", className: "text-primary" },
+  unlinked: { dot: "⚪", label: "Não vinculado", className: "text-muted-foreground" },
+  needs_review: { dot: "🟡", label: "Requer revisão", className: "text-foreground" },
+  error: { dot: "🔴", label: "Erro de integração", className: "text-destructive" },
+};
+
 
 export const Route = createFileRoute("/_authenticated/equipe")({
   head: () => ({
