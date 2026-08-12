@@ -164,8 +164,10 @@ function Dashboard() {
             <button
               type="button"
               onClick={async () => {
+                await queryClient.cancelQueries();
+                queryClient.clear();
                 await supabase.auth.signOut();
-                navigate({ to: "/auth" });
+                navigate({ to: "/auth", replace: true });
               }}
               className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
             >

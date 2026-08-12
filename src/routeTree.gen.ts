@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -20,6 +21,11 @@ import { Route as AuthenticatedInstalacoesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as ApiPublicTrackMessageRouteImport } from './routes/api/public/track-message'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
   id: '/politica-de-privacidade',
   path: '/politica-de-privacidade',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/instalacoes': typeof AuthenticatedInstalacoesRoute
   '/minha-extensao': typeof AuthenticatedMinhaExtensaoRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/instalacoes': typeof AuthenticatedInstalacoesRoute
   '/minha-extensao': typeof AuthenticatedMinhaExtensaoRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/instalacoes': typeof AuthenticatedInstalacoesRoute
   '/_authenticated/minha-extensao': typeof AuthenticatedMinhaExtensaoRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/politica-de-privacidade'
+    | '/reset-password'
     | '/equipe'
     | '/instalacoes'
     | '/minha-extensao'
@@ -123,6 +133,7 @@ export interface FileRouteTypes {
   to:
     | '/auth'
     | '/politica-de-privacidade'
+    | '/reset-password'
     | '/equipe'
     | '/instalacoes'
     | '/minha-extensao'
@@ -135,6 +146,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/politica-de-privacidade'
+    | '/reset-password'
     | '/_authenticated/equipe'
     | '/_authenticated/instalacoes'
     | '/_authenticated/minha-extensao'
@@ -148,12 +160,20 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   ApiPublicTrackMessageRoute: typeof ApiPublicTrackMessageRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/politica-de-privacidade': {
       id: '/politica-de-privacidade'
       path: '/politica-de-privacidade'
@@ -250,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   ApiPublicTrackMessageRoute: ApiPublicTrackMessageRoute,
 }

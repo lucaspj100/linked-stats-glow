@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+const PUBLISHED_ORIGIN = "https://linked-stats-glow.lovable.app";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -41,7 +45,7 @@ function friendlyError(error: { message: string; code?: string; status?: number 
 function AuthPage() {
   const navigate = useNavigate();
   const [checkingSession, setCheckingSession] = useState(true);
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -84,7 +88,9 @@ function AuthPage() {
         setMessage(friendlyError(error));
         if (
           error.code === "email_not_confirmed" ||
-          error.message.toLowerCase().includes("not confirmed")
+          error.message.toLowerCase().includes("not confirmed") ||
+          error.code === "invalid_credentials" ||
+          error.message.toLowerCase().includes("invalid login")
         ) {
           setNeedsConfirmation(true);
         }
@@ -99,6 +105,9 @@ function AuthPage() {
         await getMyProfile({ data: undefined });
       } catch (profileError) {
         console.error("[auth] perfil:", (profileError as Error).message);
+        await supabase.auth.signOut();
+        setMessage("O acesso foi autenticado, mas não foi possível preparar o perfil. Tente novamente.");
+        return;
       }
       navigate({ to: "/", replace: true });
       return;
@@ -108,7 +117,7 @@ function AuthPage() {
       email: normalizedEmail,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${PUBLISHED_ORIGIN}/auth/callback`,
         data: { full_name: fullName.trim(), phone: phone.trim() || null },
       },
     });
@@ -123,12 +132,23 @@ function AuthPage() {
     if (data.user && (data.user.identities?.length ?? 0) === 0) {
       setMode("signin");
       setNeedsConfirmation(true);
-      setNotice("Este e-mail já tem conta. Faça login ou reenvie a confirmação.");
+      setNotice(
+        "Este e-mail já tem conta. A senha informada agora não substituiu a senha existente. Reenvie a confirmação ou use “Esqueci minha senha”.",
+      );
       return;
     }
     if (!data.session) {
       setNeedsConfirmation(true);
       setNotice("Conta criada. Confirme o e-mail pelo link enviado e volte para entrar.");
+      return;
+    }
+    try {
+      const { getMyProfile } = await import("@/lib/profiles.functions");
+      await getMyProfile({ data: undefined });
+    } catch (profileError) {
+      console.error("[auth] perfil após cadastro:", (profileError as Error).message);
+      await supabase.auth.signOut();
+      setMessage("A conta foi criada, mas não foi possível preparar o perfil. Tente entrar novamente.");
       return;
     }
     navigate({ to: "/", replace: true });
@@ -144,7 +164,7 @@ function AuthPage() {
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: normalizedEmail,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${PUBLISHED_ORIGIN}/auth/callback` },
     });
     setLoading(false);
     if (error) {
@@ -153,6 +173,29 @@ function AuthPage() {
       return;
     }
     setNotice("Novo e-mail de confirmação enviado. Verifique a caixa de entrada e o spam.");
+  }
+
+  async function requestPasswordReset(e: React.FormEvent) {
+    e.preventDefault();
+    if (!normalizedEmail) {
+      setMessage("Informe o e-mail da conta.");
+      return;
+    }
+    setLoading(true);
+    setMessage(null);
+    setNotice(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: `${PUBLISHED_ORIGIN}/reset-password`,
+    });
+    setLoading(false);
+    if (error) {
+      console.error("[auth] resetPasswordForEmail:", error.code ?? error.status, error.message);
+      setMessage(friendlyError(error));
+      return;
+    }
+    setNotice(
+      "Se a conta existir, enviaremos um link para redefinir a senha. Verifique a caixa de entrada e o spam.",
+    );
   }
 
   if (checkingSession) {
@@ -166,7 +209,7 @@ function AuthPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6">
       <form
-        onSubmit={onSubmit}
+        onSubmit={mode === "forgot" ? requestPasswordReset : onSubmit}
         className="w-full max-w-sm space-y-4 rounded-xl border border-border bg-card p-6"
       >
         <div>
@@ -177,75 +220,97 @@ function AuthPage() {
         </div>
 
         {mode === "signup" && (
-          <input
+          <Input
             type="text"
             required
             minLength={2}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Nome completo"
-            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           />
         )}
 
-        <input
+        <Input
           type="email"
           required
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="E-mail corporativo"
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
         />
-        <input
-          type="password"
-          required
-          minLength={8}
-          autoComplete={mode === "signin" ? "current-password" : "new-password"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Senha"
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-        />
+        {mode !== "forgot" && (
+          <Input
+            type="password"
+            required
+            minLength={8}
+            autoComplete={mode === "signin" ? "current-password" : "new-password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Senha"
+          />
+        )}
         {mode === "signup" && (
-          <input
+          <Input
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Telefone (opcional)"
-            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           />
         )}
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+          className="w-full"
         >
-          {loading ? "Aguarde…" : mode === "signin" ? "Entrar" : "Criar conta"}
-        </button>
+          {loading
+            ? "Aguarde…"
+            : mode === "signin"
+              ? "Entrar"
+              : mode === "signup"
+                ? "Criar conta"
+                : "Enviar link de redefinição"}
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => {
-            setMode(mode === "signin" ? "signup" : "signin");
+            setMode(mode === "signup" ? "signin" : "signup");
             setMessage(null);
             setNotice(null);
           }}
-          className="w-full text-xs text-muted-foreground hover:text-foreground"
+          className="w-full text-xs"
         >
-          {mode === "signin" ? "Não tem acesso? Criar conta" : "Já tem conta? Entrar"}
-        </button>
+          {mode === "signup" ? "Já tem conta? Entrar" : "Não tem acesso? Criar conta"}
+        </Button>
+
+        {mode !== "signup" && (
+          <Button
+            type="button"
+            variant="link"
+            onClick={() => {
+              setMode(mode === "forgot" ? "signin" : "forgot");
+              setMessage(null);
+              setNotice(null);
+              setNeedsConfirmation(false);
+            }}
+            className="w-full text-xs"
+          >
+            {mode === "forgot" ? "Voltar ao login" : "Esqueci minha senha"}
+          </Button>
+        )}
 
         {needsConfirmation && (
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={resendConfirmation}
             disabled={loading}
-            className="w-full rounded-lg border border-input px-3 py-2 text-xs font-medium text-foreground disabled:opacity-60"
+            className="w-full text-xs"
           >
             Reenviar e-mail de confirmação
-          </button>
+          </Button>
         )}
 
         {notice && <p className="text-xs text-muted-foreground">{notice}</p>}
