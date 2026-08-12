@@ -349,8 +349,18 @@ function TeamPage() {
               </div>
               <div>
                 <dt className="text-xs uppercase text-muted-foreground">CRM United</dt>
-                <dd className="text-foreground">{detail.crm_user_id ?? "Não vinculado"}</dd>
+                <dd className="text-foreground">
+                  {detail.crm_user_id
+                    ? detail.crm_name || detail.crm_email || "Vendedor do CRM"
+                    : "Não vinculado"}
+                </dd>
+                {detail.crm_user_id && (
+                  <dd className="text-xs text-muted-foreground">
+                    {detail.crm_email ?? "—"} · ID {detail.crm_user_id}
+                  </dd>
+                )}
               </div>
+
               <div>
                 <dt className="text-xs uppercase text-muted-foreground">Mensagens no mês</dt>
                 <dd className="text-foreground">{counts.get(detail.name)?.month ?? 0}</dd>
