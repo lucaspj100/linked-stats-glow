@@ -67,7 +67,7 @@ function TeamPage() {
   });
 
   const [search, setSearch] = useState("");
-  const [detail, setDetail] = useState<Profile | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [crmBusy, setCrmBusy] = useState<string | null>(null);
   const [crmFeedback, setCrmFeedback] = useState<string | null>(null);
   const [ambiguous, setAmbiguous] = useState<
@@ -96,13 +96,21 @@ function TeamPage() {
     );
   }, [sellers.data, search]);
 
+  // Sempre derivado dos dados atuais da query, nunca de uma cópia antiga da linha.
+  const detail = useMemo(
+    () => (sellers.data ?? []).find((s) => s.id === detailId) ?? null,
+    [sellers.data, detailId],
+  );
+
   async function mutate(profileId: string, patch: { active?: boolean; crmUserId?: string | null }) {
     await adminUpdateSeller({ data: { profileId, ...patch } });
-    await queryClient.invalidateQueries({ queryKey: ["sellers"] });
+    await refreshSellers();
   }
 
+  /** Recarrega a lista direto do banco (refetch, não apenas invalidação). */
   async function refreshSellers() {
-    await queryClient.invalidateQueries({ queryKey: ["sellers"] });
+    await queryClient.refetchQueries({ queryKey: ["sellers"], type: "active" });
+    await queryClient.invalidateQueries({ queryKey: ["session-profile"] });
   }
 
   /** Vínculo automático pelo e-mail; casos ambíguos abrem a lista de candidatos. */
@@ -368,7 +376,7 @@ function TeamPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setDetail(s)}
+                          onClick={() => setDetailId(s.id)}
                           className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
                         >
                           Detalhes
@@ -395,7 +403,7 @@ function TeamPage() {
               <h2 className="text-sm font-semibold text-foreground">Detalhes · {detail.name}</h2>
               <button
                 type="button"
-                onClick={() => setDetail(null)}
+                onClick={() => setDetailId(null)}
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
                 Fechar
