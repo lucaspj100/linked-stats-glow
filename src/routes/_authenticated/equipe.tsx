@@ -237,6 +237,8 @@ function TeamPage() {
           </div>
         )}
 
+        <CrmSyncCard />
+
         {ambiguous && (
           <div className="mb-4 rounded-xl border border-border bg-card p-5">
             <h2 className="text-sm font-semibold text-foreground">
