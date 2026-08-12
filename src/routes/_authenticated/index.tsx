@@ -14,6 +14,7 @@ import {
   startOfToday,
   type PeriodKey,
 } from "@/lib/analytics";
+import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeMessageEvents } from "@/hooks/use-realtime-message-events";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { SellerRanking } from "@/components/dashboard/seller-ranking";
