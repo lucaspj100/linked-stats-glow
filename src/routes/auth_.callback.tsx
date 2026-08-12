@@ -88,13 +88,9 @@ function AuthCallback() {
           );
         }
 
-        // Garante profile + role (criados no servidor com privilégio, sem duplicar).
-        try {
-          const { getMyProfile } = await import("@/lib/profiles.functions");
-          await getMyProfile({ data: undefined });
-        } catch (profileError) {
-          console.error("[auth/callback] perfil:", (profileError as Error).message);
-        }
+        // Garante profile + role antes de liberar a rota protegida.
+        const { getMyProfile } = await import("@/lib/profiles.functions");
+        await getMyProfile({ data: undefined });
 
         if (!cancelled) navigate({ to: "/", replace: true });
       } catch (e) {

@@ -103,6 +103,9 @@ function AuthPage() {
         await getMyProfile({ data: undefined });
       } catch (profileError) {
         console.error("[auth] perfil:", (profileError as Error).message);
+        await supabase.auth.signOut();
+        setMessage("O acesso foi autenticado, mas não foi possível preparar o perfil. Tente novamente.");
+        return;
       }
       navigate({ to: "/", replace: true });
       return;
@@ -135,6 +138,15 @@ function AuthPage() {
     if (!data.session) {
       setNeedsConfirmation(true);
       setNotice("Conta criada. Confirme o e-mail pelo link enviado e volte para entrar.");
+      return;
+    }
+    try {
+      const { getMyProfile } = await import("@/lib/profiles.functions");
+      await getMyProfile({ data: undefined });
+    } catch (profileError) {
+      console.error("[auth] perfil após cadastro:", (profileError as Error).message);
+      await supabase.auth.signOut();
+      setMessage("A conta foi criada, mas não foi possível preparar o perfil. Tente entrar novamente.");
       return;
     }
     navigate({ to: "/", replace: true });
