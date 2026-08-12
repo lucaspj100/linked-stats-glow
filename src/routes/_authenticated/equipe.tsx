@@ -180,8 +180,27 @@ function TeamPage() {
                         {s.active ? "Ativo" : "Inativo"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {s.crm_user_id ? s.crm_user_id : "Não vinculado"}
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const st = CRM_STATUS[s.crm_link_status] ?? CRM_STATUS["unlinked"]!;
+                        return (
+                          <div className="flex flex-col">
+                            <span className={`text-xs font-medium ${st.className}`}>
+                              {st.dot} {st.label}
+                            </span>
+                            {s.crm_user_id && (
+                              <span className="text-xs text-foreground">
+                                {s.crm_name || s.crm_email || "Vendedor do CRM"}
+                              </span>
+                            )}
+                            {s.crm_link_status === "error" && s.crm_last_error && (
+                              <span className="text-[11px] text-muted-foreground">
+                                {s.crm_last_error}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">{c.today}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{c.month}</td>
@@ -189,17 +208,33 @@ function TeamPage() {
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => {
-                            const value = window.prompt(
-                              "ID do vendedor no CRM United",
-                              s.crm_user_id ?? "",
-                            );
-                            if (value !== null) void mutate(s.id, { crmUserId: value.trim() });
-                          }}
+                          disabled={crmBusy === s.id}
+                          onClick={() => void tryLink(s)}
+                          className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                        >
+                          {crmBusy === s.id
+                            ? "Consultando…"
+                            : s.crm_user_id
+                              ? "Revincular ao CRM"
+                              : "Vincular ao CRM"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void manualLink(s)}
                           className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
                         >
-                          Vincular ao CRM
+                          Vínculo manual
                         </button>
+                        {s.crm_user_id && (
+                          <button
+                            type="button"
+                            onClick={() => void unlink(s)}
+                            className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            Desvincular
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => void mutate(s.id, { active: !s.active })}
