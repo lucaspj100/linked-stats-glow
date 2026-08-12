@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      crm_link_attempts: {
+        Row: {
+          created_at: string
+          email_normalized: string
+          id: string
+          matches_count: number
+          message: string | null
+          outcome: string
+          profile_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_normalized: string
+          id?: string
+          matches_count?: number
+          message?: string | null
+          outcome: string
+          profile_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_normalized?: string
+          id?: string
+          matches_count?: number
+          message?: string | null
+          outcome?: string
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_link_attempts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extension_installations: {
         Row: {
           created_at: string
@@ -98,6 +136,12 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          crm_email: string | null
+          crm_last_attempt_at: string | null
+          crm_last_error: string | null
+          crm_link_status: string
+          crm_linked_at: string | null
+          crm_name: string | null
           crm_user_id: string | null
           email: string
           id: string
@@ -109,6 +153,12 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          crm_email?: string | null
+          crm_last_attempt_at?: string | null
+          crm_last_error?: string | null
+          crm_link_status?: string
+          crm_linked_at?: string | null
+          crm_name?: string | null
           crm_user_id?: string | null
           email: string
           id?: string
@@ -120,6 +170,12 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          crm_email?: string | null
+          crm_last_attempt_at?: string | null
+          crm_last_error?: string | null
+          crm_link_status?: string
+          crm_linked_at?: string | null
+          crm_name?: string | null
           crm_user_id?: string | null
           email?: string
           id?: string

@@ -11,13 +11,20 @@ export type Profile = {
   email: string;
   phone: string | null;
   crm_user_id: string | null;
+  crm_link_status: string;
+  crm_name: string | null;
+  crm_email: string | null;
+  crm_linked_at: string | null;
+  crm_last_error: string | null;
   active: boolean;
   created_at: string;
 };
 
 export type SessionProfile = { profile: Profile; role: AppRole };
 
-const PROFILE_COLUMNS = "id, user_id, name, email, phone, crm_user_id, active, created_at";
+const PROFILE_COLUMNS =
+  "id, user_id, name, email, phone, crm_user_id, crm_link_status, crm_name, crm_email, crm_linked_at, crm_last_error, active, created_at";
+
 
 /**
  * Retorna (e cria, se necessário) o perfil do usuário autenticado.
@@ -72,7 +79,36 @@ export const getMyProfile = createServerFn({ method: "POST" })
       await supabaseAdmin.from("user_roles").insert({ user_id: userId, role });
     }
 
+    // Vínculo automático com o CRM United (nunca bloqueia cadastro/login).
+    if (!profile.crm_user_id) {
+      try {
+        const { data: meta2 } = await supabaseAdmin
+          .from("profiles")
+          .select("crm_last_attempt_at")
+          .eq("id", profile.id)
+          .maybeSingle();
+        const { attemptAutoLink } = await import("@/lib/crm-link.server");
+        const result = await attemptAutoLink({
+          id: profile.id,
+          email: profile.email,
+          crm_user_id: profile.crm_user_id,
+          crm_last_attempt_at: meta2?.crm_last_attempt_at ?? null,
+        });
+        if (result.outcome === "linked") {
+          const { data: refreshed } = await supabaseAdmin
+            .from("profiles")
+            .select(PROFILE_COLUMNS)
+            .eq("id", profile.id)
+            .maybeSingle();
+          if (refreshed) profile = refreshed;
+        }
+      } catch (error) {
+        console.error("[CRM United] vínculo automático falhou:", (error as Error).message);
+      }
+    }
+
     return { profile: profile as Profile, role };
+
   });
 
 const updateSchema = z.object({

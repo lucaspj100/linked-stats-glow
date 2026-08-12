@@ -3,9 +3,23 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { listSellers, adminUpdateSeller, type Profile } from "@/lib/profiles.functions";
+import {
+  retryCrmLink,
+  adminSetCrmLink,
+  adminUnlinkCrm,
+  type CrmLinkAttemptResult,
+} from "@/lib/crm-link.functions";
 import { fetchMessageEvents } from "@/lib/message-events.functions";
 import { sessionProfileQuery } from "@/lib/session-profile";
 import { countSince, startOfMonth, startOfToday } from "@/lib/analytics";
+
+const CRM_STATUS: Record<string, { dot: string; label: string; className: string }> = {
+  linked: { dot: "🟢", label: "Vinculado", className: "text-primary" },
+  unlinked: { dot: "⚪", label: "Não vinculado", className: "text-muted-foreground" },
+  needs_review: { dot: "🟡", label: "Requer revisão", className: "text-foreground" },
+  error: { dot: "🔴", label: "Erro de integração", className: "text-destructive" },
+};
+
 
 export const Route = createFileRoute("/_authenticated/equipe")({
   head: () => ({
@@ -54,6 +68,12 @@ function TeamPage() {
 
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<Profile | null>(null);
+  const [crmBusy, setCrmBusy] = useState<string | null>(null);
+  const [crmFeedback, setCrmFeedback] = useState<string | null>(null);
+  const [ambiguous, setAmbiguous] = useState<
+    { seller: Profile; result: CrmLinkAttemptResult } | null
+  >(null);
+
 
   const counts = useMemo(() => {
     const map = new Map<string, { today: number; month: number }>();
@@ -80,6 +100,61 @@ function TeamPage() {
     await adminUpdateSeller({ data: { profileId, ...patch } });
     await queryClient.invalidateQueries({ queryKey: ["sellers"] });
   }
+
+  async function refreshSellers() {
+    await queryClient.invalidateQueries({ queryKey: ["sellers"] });
+  }
+
+  /** Vínculo automático pelo e-mail; casos ambíguos abrem a lista de candidatos. */
+  async function tryLink(seller: Profile) {
+    setCrmBusy(seller.id);
+    setCrmFeedback(null);
+    try {
+      const result: CrmLinkAttemptResult = await retryCrmLink({
+        data: { profileId: seller.id },
+      });
+      if (result.outcome === "needs_review" && result.candidates.length > 0) {
+        setAmbiguous({ seller, result });
+      }
+      setCrmFeedback(
+        result.outcome === "not_found"
+          ? "Nenhum vendedor do CRM United encontrado com este e-mail."
+          : result.message,
+      );
+    } catch (error) {
+      setCrmFeedback((error as Error).message);
+    } finally {
+      setCrmBusy(null);
+      await refreshSellers();
+    }
+  }
+
+  /** Opção secundária: administrador informa o ID do CRM manualmente. */
+  async function manualLink(seller: Profile) {
+    const value = window.prompt("ID do vendedor no CRM United", seller.crm_user_id ?? "");
+    if (value === null) return;
+    const crmUserId = value.trim();
+    if (!crmUserId) return;
+    const result = await adminSetCrmLink({ data: { profileId: seller.id, crmUserId } });
+    setCrmFeedback(result.message);
+    await refreshSellers();
+  }
+
+  async function unlink(seller: Profile) {
+    await adminUnlinkCrm({ data: { profileId: seller.id } });
+    setCrmFeedback("Vínculo removido.");
+    await refreshSellers();
+  }
+
+  async function chooseCandidate(seller: Profile, candidateId: string, name: string, email: string) {
+    const result = await adminSetCrmLink({
+      data: { profileId: seller.id, crmUserId: candidateId, crmName: name, crmEmail: email },
+    });
+    setCrmFeedback(result.message);
+    setAmbiguous(null);
+    await refreshSellers();
+  }
+
 
   if (session.isLoading) {
     return <div className="p-10 text-sm text-muted-foreground">Carregando…</div>;
@@ -129,6 +204,69 @@ function TeamPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-8">
+        {crmFeedback && (
+          <div
+            role="status"
+            className="mb-4 flex items-start justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground"
+          >
+            <span>{crmFeedback}</span>
+            <button
+              type="button"
+              onClick={() => setCrmFeedback(null)}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Fechar
+            </button>
+          </div>
+        )}
+
+        {ambiguous && (
+          <div className="mb-4 rounded-xl border border-border bg-card p-5">
+            <h2 className="text-sm font-semibold text-foreground">
+              Requer revisão · {ambiguous.seller.name}
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Mais de um vendedor do CRM United corresponde a {ambiguous.seller.email}. Escolha o
+              correto.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {ambiguous.result.candidates.map((candidate) => (
+                <li
+                  key={candidate.id}
+                  className="flex items-center justify-between gap-4 rounded-lg border border-border px-3 py-2"
+                >
+                  <div>
+                    <p className="text-sm text-foreground">{candidate.name || "Sem nome"}</p>
+                    <p className="text-xs text-muted-foreground">{candidate.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void chooseCandidate(
+                        ambiguous.seller,
+                        candidate.id,
+                        candidate.name,
+                        candidate.email,
+                      )
+                    }
+                    className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Vincular
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setAmbiguous(null)}
+              className="mt-3 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+
+
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
@@ -166,8 +304,27 @@ function TeamPage() {
                         {s.active ? "Ativo" : "Inativo"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {s.crm_user_id ? s.crm_user_id : "Não vinculado"}
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const st = CRM_STATUS[s.crm_link_status] ?? CRM_STATUS["unlinked"]!;
+                        return (
+                          <div className="flex flex-col">
+                            <span className={`text-xs font-medium ${st.className}`}>
+                              {st.dot} {st.label}
+                            </span>
+                            {s.crm_user_id && (
+                              <span className="text-xs text-foreground">
+                                {s.crm_name || s.crm_email || "Vendedor do CRM"}
+                              </span>
+                            )}
+                            {s.crm_link_status === "error" && s.crm_last_error && (
+                              <span className="text-[11px] text-muted-foreground">
+                                {s.crm_last_error}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">{c.today}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{c.month}</td>
@@ -175,17 +332,33 @@ function TeamPage() {
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => {
-                            const value = window.prompt(
-                              "ID do vendedor no CRM United",
-                              s.crm_user_id ?? "",
-                            );
-                            if (value !== null) void mutate(s.id, { crmUserId: value.trim() });
-                          }}
+                          disabled={crmBusy === s.id}
+                          onClick={() => void tryLink(s)}
+                          className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                        >
+                          {crmBusy === s.id
+                            ? "Consultando…"
+                            : s.crm_user_id
+                              ? "Revincular ao CRM"
+                              : "Vincular ao CRM"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void manualLink(s)}
                           className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
                         >
-                          Vincular ao CRM
+                          Vínculo manual
                         </button>
+                        {s.crm_user_id && (
+                          <button
+                            type="button"
+                            onClick={() => void unlink(s)}
+                            className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            Desvincular
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => void mutate(s.id, { active: !s.active })}
@@ -239,8 +412,18 @@ function TeamPage() {
               </div>
               <div>
                 <dt className="text-xs uppercase text-muted-foreground">CRM United</dt>
-                <dd className="text-foreground">{detail.crm_user_id ?? "Não vinculado"}</dd>
+                <dd className="text-foreground">
+                  {detail.crm_user_id
+                    ? detail.crm_name || detail.crm_email || "Vendedor do CRM"
+                    : "Não vinculado"}
+                </dd>
+                {detail.crm_user_id && (
+                  <dd className="text-xs text-muted-foreground">
+                    {detail.crm_email ?? "—"} · ID {detail.crm_user_id}
+                  </dd>
+                )}
               </div>
+
               <div>
                 <dt className="text-xs uppercase text-muted-foreground">Mensagens no mês</dt>
                 <dd className="text-foreground">{counts.get(detail.name)?.month ?? 0}</dd>
