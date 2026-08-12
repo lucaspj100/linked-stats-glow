@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedInstalacoesRouteImport } from './routes/_authenticated/instalacoes'
 import { Route as ApiPublicTrackMessageRouteImport } from './routes/api/public/track-message'
 
+const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
+  id: '/politica-de-privacidade',
+  path: '/politica-de-privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -44,11 +50,13 @@ const ApiPublicTrackMessageRoute = ApiPublicTrackMessageRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/instalacoes': typeof AuthenticatedInstalacoesRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/instalacoes': typeof AuthenticatedInstalacoesRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
@@ -57,19 +65,31 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/_authenticated/instalacoes': typeof AuthenticatedInstalacoesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/instalacoes' | '/api/public/track-message'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/politica-de-privacidade'
+    | '/instalacoes'
+    | '/api/public/track-message'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/instalacoes' | '/' | '/api/public/track-message'
+  to:
+    | '/auth'
+    | '/politica-de-privacidade'
+    | '/instalacoes'
+    | '/'
+    | '/api/public/track-message'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/politica-de-privacidade'
     | '/_authenticated/instalacoes'
     | '/_authenticated/'
     | '/api/public/track-message'
@@ -78,11 +98,19 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
   ApiPublicTrackMessageRoute: typeof ApiPublicTrackMessageRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/politica-de-privacidade': {
+      id: '/politica-de-privacidade'
+      path: '/politica-de-privacidade'
+      fullPath: '/politica-de-privacidade'
+      preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -137,6 +165,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
   ApiPublicTrackMessageRoute: ApiPublicTrackMessageRoute,
 }
 export const routeTree = rootRouteImport
