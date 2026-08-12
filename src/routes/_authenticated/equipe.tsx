@@ -121,6 +121,9 @@ function TeamPage() {
       const result: CrmLinkAttemptResult = await retryCrmLink({
         data: { profileId: seller.id },
       });
+      if (result.outcome === "error" || result.diagnostics?.update_success === false) {
+        throw new Error(result.message);
+      }
       if (result.outcome === "needs_review" && result.candidates.length > 0) {
         setAmbiguous({ seller, result });
       }
@@ -144,6 +147,9 @@ function TeamPage() {
     const crmUserId = value.trim();
     if (!crmUserId) return;
     const result = await adminSetCrmLink({ data: { profileId: seller.id, crmUserId } });
+    if (result.outcome !== "linked" || result.diagnostics?.update_success !== true) {
+      throw new Error(result.message);
+    }
     setCrmFeedback(result.message);
     await refreshSellers();
   }
@@ -158,6 +164,9 @@ function TeamPage() {
     const result = await adminSetCrmLink({
       data: { profileId: seller.id, crmUserId: candidateId, crmName: name, crmEmail: email },
     });
+    if (result.outcome !== "linked" || result.diagnostics?.update_success !== true) {
+      throw new Error(result.message);
+    }
     setCrmFeedback(result.message);
     setAmbiguous(null);
     await refreshSellers();
