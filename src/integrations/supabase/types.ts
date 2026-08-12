@@ -55,6 +55,7 @@ export type Database = {
       extension_installations: {
         Row: {
           created_at: string
+          device_name: string | null
           id: string
           is_active: boolean
           label: string
@@ -63,10 +64,12 @@ export type Database = {
           person_name: string
           seller_user_id: string | null
           token_hash: string
+          token_secret: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          device_name?: string | null
           id?: string
           is_active?: boolean
           label: string
@@ -75,10 +78,12 @@ export type Database = {
           person_name: string
           seller_user_id?: string | null
           token_hash: string
+          token_secret?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          device_name?: string | null
           id?: string
           is_active?: boolean
           label?: string
@@ -87,6 +92,7 @@ export type Database = {
           person_name?: string
           seller_user_id?: string | null
           token_hash?: string
+          token_secret?: string | null
           updated_at?: string
         }
         Relationships: []

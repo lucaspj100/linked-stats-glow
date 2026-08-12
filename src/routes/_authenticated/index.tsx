@@ -150,6 +150,12 @@ function Dashboard() {
               {live ? "Tempo real ativo" : "Conectando…"}
             </span>
             <Link
+              to="/minha-extensao"
+              className="rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+            >
+              Minha extensão
+            </Link>
+            <Link
               to="/perfil"
               className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
             >

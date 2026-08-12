@@ -76,6 +76,19 @@ function ProfilePage() {
       </header>
 
       <div className="mx-auto max-w-3xl px-6 py-8">
+        <Link
+          to="/minha-extensao"
+          className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-5 transition-colors hover:bg-primary/10"
+        >
+          <span>
+            <span className="block text-sm font-medium text-foreground">Minha extensão</span>
+            <span className="mt-1 block text-xs text-muted-foreground">
+              Veja, crie e copie o installation ID e o token da sua extensão do Chrome.
+            </span>
+          </span>
+          <span className="text-xs font-medium text-primary">Abrir →</span>
+        </Link>
+
         {isLoading || !data ? (
           <p className="text-sm text-muted-foreground">Carregando…</p>
         ) : (

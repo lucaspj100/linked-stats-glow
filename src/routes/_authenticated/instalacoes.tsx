@@ -9,6 +9,7 @@ import {
   listInstallations,
   setInstallationActive,
 } from "@/lib/installations.functions";
+import { formatDateTime, installationStatus } from "@/lib/installation-status";
 
 const installationsQuery = queryOptions({
   queryKey: ["installations"],
@@ -161,50 +162,57 @@ function InstallationsPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 font-medium">Instalação</th>
+                <th className="px-4 py-3 font-medium">Dispositivo</th>
                 <th className="px-4 py-3 font-medium">Vendedor</th>
-                <th className="px-4 py-3 font-medium">Último uso</th>
+                <th className="px-4 py-3 font-medium">Criada em</th>
+                <th className="px-4 py-3 font-medium">Última atividade</th>
                 <th className="px-4 py-3 font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
               {installations.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
                     Nenhuma instalação cadastrada.
                   </td>
                 </tr>
               ) : (
-                installations.map((item) => (
-                  <tr key={item.id} className="border-t">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{item.label}</div>
-                      <div className="font-mono text-xs text-muted-foreground">{item.id}</div>
-                    </td>
-                    <td className="px-4 py-3">{item.person_name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {item.last_used_at
-                        ? new Date(item.last_used_at).toLocaleString("pt-BR")
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          await toggle({ data: { id: item.id, isActive: !item.is_active } });
-                          await queryClient.invalidateQueries({ queryKey: ["installations"] });
-                        }}
-                        className={
-                          item.is_active
-                            ? "rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
-                            : "rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
-                        }
-                      >
-                        {item.is_active ? "Ativa" : "Inativa"}
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                installations.map((item) => {
+                  const status = installationStatus(item);
+                  return (
+                    <tr key={item.id} className="border-t">
+                      <td className="px-4 py-3">
+                        <div className="font-medium">{item.device_name ?? item.label}</div>
+                        <div className="font-mono text-xs text-muted-foreground">{item.id}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div>{item.person_name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.seller_user_id ? "conta vinculada" : "sem usuário vinculado"}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {formatDateTime(item.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {formatDateTime(item.last_used_at)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await toggle({ data: { id: item.id, isActive: !item.is_active } });
+                            await queryClient.refetchQueries({ queryKey: ["installations"] });
+                          }}
+                          title={item.is_active ? "Desativar instalação" : "Reativar instalação"}
+                          className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                        >
+                          {status.icon} {status.label}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
