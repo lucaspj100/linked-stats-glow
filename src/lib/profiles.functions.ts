@@ -11,13 +11,20 @@ export type Profile = {
   email: string;
   phone: string | null;
   crm_user_id: string | null;
+  crm_link_status: string;
+  crm_name: string | null;
+  crm_email: string | null;
+  crm_linked_at: string | null;
+  crm_last_error: string | null;
   active: boolean;
   created_at: string;
 };
 
 export type SessionProfile = { profile: Profile; role: AppRole };
 
-const PROFILE_COLUMNS = "id, user_id, name, email, phone, crm_user_id, active, created_at";
+const PROFILE_COLUMNS =
+  "id, user_id, name, email, phone, crm_user_id, crm_link_status, crm_name, crm_email, crm_linked_at, crm_last_error, active, created_at";
+
 
 /**
  * Retorna (e cria, se necessário) o perfil do usuário autenticado.
