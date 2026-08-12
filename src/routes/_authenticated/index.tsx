@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
+import { sessionProfileQuery } from "@/lib/session-profile";
 import { Activity, CalendarDays, CalendarRange, Radio, Send } from "lucide-react";
 
 import { fetchMessageEvents } from "@/lib/message-events.functions";
@@ -70,6 +71,8 @@ const PERIODS: { key: PeriodKey; label: string }[] = [
 
 function Dashboard() {
   const { data: events } = useSuspenseQuery(eventsQuery);
+  const session = useQuery(sessionProfileQuery);
+  const isAdmin = session.data?.role === "admin";
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodKey>("7d");
