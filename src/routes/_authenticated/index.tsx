@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
+import { sessionProfileQuery } from "@/lib/session-profile";
 import { Activity, CalendarDays, CalendarRange, Radio, Send } from "lucide-react";
 
 import { fetchMessageEvents } from "@/lib/message-events.functions";
@@ -70,6 +71,8 @@ const PERIODS: { key: PeriodKey; label: string }[] = [
 
 function Dashboard() {
   const { data: events } = useSuspenseQuery(eventsQuery);
+  const session = useQuery(sessionProfileQuery);
+  const isAdmin = session.data?.role === "admin";
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodKey>("7d");
@@ -147,11 +150,27 @@ function Dashboard() {
               {live ? "Tempo real ativo" : "Conectando…"}
             </span>
             <Link
-              to="/instalacoes"
+              to="/perfil"
               className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
-              Instalações
+              Meu perfil
             </Link>
+            {isAdmin && (
+              <>
+                <Link
+                  to="/equipe"
+                  className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Equipe
+                </Link>
+                <Link
+                  to="/instalacoes"
+                  className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Instalações
+                </Link>
+              </>
+            )}
             <button
               type="button"
               onClick={async () => {

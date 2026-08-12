@@ -13,7 +13,9 @@ import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedInstalacoesRouteImport } from './routes/_authenticated/instalacoes'
+import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as ApiPublicTrackMessageRouteImport } from './routes/api/public/track-message'
 
 const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
@@ -35,12 +37,22 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedInstalacoesRoute =
   AuthenticatedInstalacoesRouteImport.update({
     id: '/instalacoes',
     path: '/instalacoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ApiPublicTrackMessageRoute = ApiPublicTrackMessageRouteImport.update({
   id: '/api/public/track-message',
   path: '/api/public/track-message',
@@ -51,13 +63,17 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
   '/instalacoes': typeof AuthenticatedInstalacoesRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
   '/instalacoes': typeof AuthenticatedInstalacoesRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
 }
@@ -66,7 +82,9 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/instalacoes': typeof AuthenticatedInstalacoesRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
 }
@@ -76,13 +94,17 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/politica-de-privacidade'
+    | '/equipe'
     | '/instalacoes'
+    | '/perfil'
     | '/api/public/track-message'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
     | '/politica-de-privacidade'
+    | '/equipe'
     | '/instalacoes'
+    | '/perfil'
     | '/'
     | '/api/public/track-message'
   id:
@@ -90,7 +112,9 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/politica-de-privacidade'
+    | '/_authenticated/equipe'
     | '/_authenticated/instalacoes'
+    | '/_authenticated/perfil'
     | '/_authenticated/'
     | '/api/public/track-message'
   fileRoutesById: FileRoutesById
@@ -132,11 +156,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/instalacoes': {
       id: '/_authenticated/instalacoes'
       path: '/instalacoes'
       fullPath: '/instalacoes'
       preLoaderRoute: typeof AuthenticatedInstalacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/equipe': {
+      id: '/_authenticated/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/track-message': {
@@ -150,12 +188,16 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedInstalacoesRoute: typeof AuthenticatedInstalacoesRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedInstalacoesRoute: AuthenticatedInstalacoesRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 

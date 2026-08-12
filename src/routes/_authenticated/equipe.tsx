@@ -1,0 +1,254 @@
+import { useMemo, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { listSellers, adminUpdateSeller, type Profile } from "@/lib/profiles.functions";
+import { fetchMessageEvents } from "@/lib/message-events.functions";
+import { sessionProfileQuery } from "@/lib/session-profile";
+import { countSince, startOfMonth, startOfToday } from "@/lib/analytics";
+
+export const Route = createFileRoute("/_authenticated/equipe")({
+  head: () => ({
+    meta: [
+      { title: "Equipe de vendedores — LinkedIn Message Tracker" },
+      {
+        name: "description",
+        content:
+          "Área administrativa com todos os vendedores cadastrados, status, vínculo com o CRM e volume de mensagens.",
+      },
+      { property: "og:title", content: "Equipe de vendedores — LinkedIn Message Tracker" },
+      {
+        property: "og:description",
+        content: "Gestão de vendedores, status e vínculo com o CRM United.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: TeamPage,
+  errorComponent: ({ error }) => (
+    <div role="alert" className="p-10 text-sm text-destructive">
+      {error.message}
+    </div>
+  ),
+  notFoundComponent: () => <div className="p-10 text-sm">Nada por aqui.</div>,
+});
+
+function TeamPage() {
+  const queryClient = useQueryClient();
+  const session = useQuery(sessionProfileQuery);
+  const isAdmin = session.data?.role === "admin";
+
+  const sellers = useQuery({
+    queryKey: ["sellers"],
+    queryFn: () => listSellers({ data: undefined }),
+    enabled: isAdmin,
+  });
+
+  const events = useQuery({
+    queryKey: ["team-events"],
+    queryFn: () =>
+      fetchMessageEvents({ data: { since: startOfMonth().toISOString() } }),
+    enabled: isAdmin,
+  });
+
+  const [search, setSearch] = useState("");
+  const [detail, setDetail] = useState<Profile | null>(null);
+
+  const counts = useMemo(() => {
+    const map = new Map<string, { today: number; month: number }>();
+    for (const e of events.data ?? []) {
+      const entry = map.get(e.person_name) ?? { today: 0, month: 0 };
+      entry.month++;
+      if (new Date(e.sent_at).getTime() >= startOfToday().getTime()) entry.today++;
+      map.set(e.person_name, entry);
+    }
+    return map;
+  }, [events.data]);
+
+  const rows = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (sellers.data ?? []).filter(
+      (s) =>
+        !term ||
+        s.name.toLowerCase().includes(term) ||
+        s.email.toLowerCase().includes(term),
+    );
+  }, [sellers.data, search]);
+
+  async function mutate(profileId: string, patch: { active?: boolean; crmUserId?: string | null }) {
+    await adminUpdateSeller({ data: { profileId, ...patch } });
+    await queryClient.invalidateQueries({ queryKey: ["sellers"] });
+  }
+
+  if (session.isLoading) {
+    return <div className="p-10 text-sm text-muted-foreground">Carregando…</div>;
+  }
+
+  if (!isAdmin) {
+    return (
+      <main className="mx-auto max-w-3xl px-6 py-16">
+        <h1 className="text-lg font-semibold text-foreground">Acesso restrito</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Esta área é exclusiva para administradores.
+        </p>
+        <Link to="/" className="mt-4 inline-block text-sm text-primary hover:underline">
+          Voltar ao painel
+        </Link>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-5">
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight text-foreground">
+              Equipe / Vendedores
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Cadastro, status e vínculo com o CRM United
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Pesquisar por nome ou e-mail"
+              className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-primary"
+            />
+            <Link
+              to="/"
+              className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              Painel
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <th className="px-4 py-3 font-semibold">Nome</th>
+                <th className="px-4 py-3 font-semibold">E-mail</th>
+                <th className="px-4 py-3 font-semibold">Telefone</th>
+                <th className="px-4 py-3 font-semibold">Cadastro</th>
+                <th className="px-4 py-3 font-semibold">Status</th>
+                <th className="px-4 py-3 font-semibold">CRM</th>
+                <th className="px-4 py-3 text-right font-semibold">Hoje</th>
+                <th className="px-4 py-3 text-right font-semibold">Mês</th>
+                <th className="px-4 py-3 font-semibold">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((s) => {
+                const c = counts.get(s.name) ?? { today: 0, month: 0 };
+                return (
+                  <tr key={s.id} className="border-b border-border/60 last:border-0">
+                    <td className="px-4 py-3 font-medium text-foreground">{s.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{s.email}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{s.phone ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(s.created_at).toLocaleDateString("pt-BR")}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={
+                          s.active
+                            ? "rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                            : "rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                        }
+                      >
+                        {s.active ? "Ativo" : "Inativo"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {s.crm_user_id ? s.crm_user_id : "Não vinculado"}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">{c.today}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{c.month}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const value = window.prompt(
+                              "ID do vendedor no CRM United",
+                              s.crm_user_id ?? "",
+                            );
+                            if (value !== null) void mutate(s.id, { crmUserId: value.trim() });
+                          }}
+                          className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          Vincular ao CRM
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void mutate(s.id, { active: !s.active })}
+                          className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          {s.active ? "Desativar" : "Ativar"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDetail(s)}
+                          className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          Detalhes
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
+                    {sellers.isLoading ? "Carregando…" : "Nenhum vendedor encontrado."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {detail && (
+          <div className="mt-6 rounded-xl border border-border bg-card p-6">
+            <div className="flex items-start justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Detalhes · {detail.name}</h2>
+              <button
+                type="button"
+                onClick={() => setDetail(null)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Fechar
+              </button>
+            </div>
+            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-xs uppercase text-muted-foreground">E-mail</dt>
+                <dd className="text-foreground">{detail.email}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-muted-foreground">Telefone</dt>
+                <dd className="text-foreground">{detail.phone ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-muted-foreground">CRM United</dt>
+                <dd className="text-foreground">{detail.crm_user_id ?? "Não vinculado"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-muted-foreground">Mensagens no mês</dt>
+                <dd className="text-foreground">{counts.get(detail.name)?.month ?? 0}</dd>
+              </div>
+            </dl>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
