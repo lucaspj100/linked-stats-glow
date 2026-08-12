@@ -10,6 +10,7 @@ import {
   type CrmLinkAttemptResult,
 } from "@/lib/crm-link.functions";
 import { fetchMessageEvents } from "@/lib/message-events.functions";
+import { getCrmSyncSummary, reprocessCrmSync } from "@/lib/crm-sync.functions";
 import { sessionProfileQuery } from "@/lib/session-profile";
 import { countSince, startOfMonth, startOfToday } from "@/lib/analytics";
 
@@ -452,5 +453,75 @@ function TeamPage() {
         )}
       </div>
     </main>
+  );
+}
+
+/** Painel administrativo da integração automática Tracker → CRM United. */
+function CrmSyncCard() {
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  const summary = useQuery({
+    queryKey: ["crm-sync-summary"],
+    queryFn: () => getCrmSyncSummary({ data: undefined }),
+    refetchInterval: 60_000,
+  });
+
+  async function reprocess() {
+    setBusy(true);
+    setFeedback(null);
+    try {
+      const result = await reprocessCrmSync({ data: {} });
+      setFeedback(
+        `Reprocessados ${result.processed} · sincronizados ${result.synced} · sem vínculo ${result.unlinked} · falhas ${result.failed}.`,
+      );
+      await summary.refetch();
+    } catch (error) {
+      setFeedback((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const s = summary.data;
+
+  return (
+    <section className="mb-4 rounded-xl border border-border bg-card p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Integração CRM</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Cada mensagem registrada vira uma atividade de LinkedIn no CRM United.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void reprocess()}
+          disabled={busy}
+          className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-primary disabled:opacity-50"
+        >
+          {busy ? "Reprocessando…" : "Reprocessar pendentes"}
+        </button>
+      </div>
+
+      <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "🟢 Sincronizado", value: s?.synced ?? 0 },
+          { label: "🟡 Pendente", value: (s?.pending ?? 0) + (s?.unlinked ?? 0) },
+          { label: "⚪ Sem vínculo", value: s?.unlinked ?? 0 },
+          { label: "🔴 Falha", value: s?.failed ?? 0 },
+        ].map((item) => (
+          <div key={item.label} className="rounded-lg border border-border px-3 py-2">
+            <dt className="text-[11px] text-muted-foreground">{item.label}</dt>
+            <dd className="text-lg font-semibold tabular-nums text-foreground">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {s?.last_error && (
+        <p className="mt-3 text-xs text-destructive">Último erro: {s.last_error}</p>
+      )}
+      {feedback && <p className="mt-3 text-xs text-muted-foreground">{feedback}</p>}
+    </section>
   );
 }
