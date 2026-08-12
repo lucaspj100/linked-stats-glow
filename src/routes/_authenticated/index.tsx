@@ -259,6 +259,15 @@ function Dashboard() {
           </div>
         </section>
       </div>
+
+      <footer className="border-t border-border bg-card py-5">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-6 text-xs text-muted-foreground">
+          <span>LinkedIn Message Tracker · Painel interno</span>
+          <Link to="/politica-de-privacidade" className="hover:text-foreground hover:underline">
+            Política de Privacidade
+          </Link>
+        </div>
+      </footer>
     </main>
   );
 }
