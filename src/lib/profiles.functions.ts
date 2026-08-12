@@ -79,7 +79,36 @@ export const getMyProfile = createServerFn({ method: "POST" })
       await supabaseAdmin.from("user_roles").insert({ user_id: userId, role });
     }
 
+    // Vínculo automático com o CRM United (nunca bloqueia cadastro/login).
+    if (!profile.crm_user_id) {
+      try {
+        const { data: meta2 } = await supabaseAdmin
+          .from("profiles")
+          .select("crm_last_attempt_at")
+          .eq("id", profile.id)
+          .maybeSingle();
+        const { attemptAutoLink } = await import("@/lib/crm-link.server");
+        const result = await attemptAutoLink({
+          id: profile.id,
+          email: profile.email,
+          crm_user_id: profile.crm_user_id,
+          crm_last_attempt_at: meta2?.crm_last_attempt_at ?? null,
+        });
+        if (result.outcome === "linked") {
+          const { data: refreshed } = await supabaseAdmin
+            .from("profiles")
+            .select(PROFILE_COLUMNS)
+            .eq("id", profile.id)
+            .maybeSingle();
+          if (refreshed) profile = refreshed;
+        }
+      } catch (error) {
+        console.error("[CRM United] vínculo automático falhou:", (error as Error).message);
+      }
+    }
+
     return { profile: profile as Profile, role };
+
   });
 
 const updateSchema = z.object({
