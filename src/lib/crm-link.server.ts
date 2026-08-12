@@ -9,7 +9,26 @@ export type CrmLinkResult = {
   outcome: CrmLinkOutcome;
   message: string;
   candidates: CrmSeller[];
+  diagnostics?: CrmLinkDiagnostics;
 };
+
+export type CrmLinkDiagnostics = {
+  matched_crm_user_id: string | null;
+  target_profile_id: string;
+  update_success: boolean;
+  persisted_crm_user_id: string | null;
+  error_code: string | null;
+};
+
+export class CrmLinkPersistenceError extends Error {
+  diagnostics: CrmLinkDiagnostics;
+
+  constructor(message: string, diagnostics: CrmLinkDiagnostics) {
+    super(message);
+    this.name = "CrmLinkPersistenceError";
+    this.diagnostics = diagnostics;
+  }
+}
 
 const RETRY_INTERVAL_MS = 6 * 60 * 60 * 1000; // evita consultar o CRM a cada render
 
@@ -42,8 +61,19 @@ export async function crmUserAlreadyLinked(crmUserId: string, exceptProfileId: s
 }
 
 /** Grava o vínculo confirmado. */
-export async function saveCrmLink(profileId: string, seller: CrmSeller) {
-  await supabaseAdmin
+export async function saveCrmLink(
+  profileId: string,
+  seller: CrmSeller,
+): Promise<CrmLinkDiagnostics> {
+  const baseDiagnostics: CrmLinkDiagnostics = {
+    matched_crm_user_id: seller.id,
+    target_profile_id: profileId,
+    update_success: false,
+    persisted_crm_user_id: null,
+    error_code: null,
+  };
+
+  const { data: updated, error: updateError } = await supabaseAdmin
     .from("profiles")
     .update({
       crm_user_id: seller.id,
@@ -54,7 +84,52 @@ export async function saveCrmLink(profileId: string, seller: CrmSeller) {
       crm_last_attempt_at: new Date().toISOString(),
       crm_last_error: null,
     })
-    .eq("id", profileId);
+    .eq("id", profileId)
+    .select("id, crm_user_id")
+    .maybeSingle();
+
+  if (updateError) {
+    throw new CrmLinkPersistenceError(updateError.message, {
+      ...baseDiagnostics,
+      error_code: updateError.code || "CRM_LINK_UPDATE_FAILED",
+    });
+  }
+  if (!updated) {
+    throw new CrmLinkPersistenceError("O perfil alvo não foi encontrado para atualização.", {
+      ...baseDiagnostics,
+      error_code: "PROFILE_NOT_FOUND",
+    });
+  }
+
+  // Leitura separada: o sucesso só é confirmado a partir do estado persistido.
+  const { data: persisted, error: readError } = await supabaseAdmin
+    .from("profiles")
+    .select("crm_user_id")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  if (readError) {
+    throw new CrmLinkPersistenceError(readError.message, {
+      ...baseDiagnostics,
+      persisted_crm_user_id: updated.crm_user_id,
+      error_code: readError.code || "CRM_LINK_VERIFY_FAILED",
+    });
+  }
+
+  const diagnostics: CrmLinkDiagnostics = {
+    ...baseDiagnostics,
+    update_success: persisted?.crm_user_id === seller.id,
+    persisted_crm_user_id: persisted?.crm_user_id ?? null,
+    error_code: persisted?.crm_user_id === seller.id ? null : "CRM_LINK_PERSISTENCE_MISMATCH",
+  };
+  if (!diagnostics.update_success) {
+    throw new CrmLinkPersistenceError(
+      "O banco não confirmou a persistência do vínculo com o CRM.",
+      diagnostics,
+    );
+  }
+
+  return diagnostics;
 }
 
 /**
@@ -135,12 +210,31 @@ export async function attemptAutoLink(
       return { outcome: "error", message, candidates: pool };
     }
 
-    await saveCrmLink(profile.id, seller);
+    const diagnostics = await saveCrmLink(profile.id, seller);
     await log(profile.id, email, "linked", 1, `Vinculado a ${seller.id}.`);
-    return { outcome: "linked", message: `Vinculado a ${seller.name || seller.email}.`, candidates: pool };
+    return {
+      outcome: "linked",
+      message: `Vinculado a ${seller.name || seller.email}.`,
+      candidates: pool,
+      diagnostics,
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro inesperado na integração.";
     console.error("[CRM United] falha ao vincular perfil", profile.id, message);
-    return { outcome: "error", message, candidates: [] };
+    const diagnostics = error instanceof CrmLinkPersistenceError
+      ? error.diagnostics
+      : {
+          matched_crm_user_id: null,
+          target_profile_id: profile.id,
+          update_success: false,
+          persisted_crm_user_id: null,
+          error_code: "CRM_LINK_UNEXPECTED_ERROR",
+        };
+    await supabaseAdmin
+      .from("profiles")
+      .update({ crm_link_status: "error", crm_last_attempt_at: now, crm_last_error: message })
+      .eq("id", profile.id);
+    await log(profile.id, email, "error", 0, message);
+    return { outcome: "error", message, candidates: [], diagnostics };
   }
 }
