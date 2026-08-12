@@ -78,24 +78,7 @@ function Dashboard() {
   const [period, setPeriod] = useState<PeriodKey>("7d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [live, setLive] = useState(false);
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("message-events-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "message_events" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["message-events"] });
-        },
-      )
-      .subscribe((status) => setLive(status === "SUBSCRIBED"));
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  const live = useRealtimeMessageEvents(["message-events"], "message-events-live");
 
   const { from, to, periodLabel } = useMemo(() => {
     const now = new Date();
