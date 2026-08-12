@@ -98,11 +98,13 @@ function TeamPage() {
 
   async function mutate(profileId: string, patch: { active?: boolean; crmUserId?: string | null }) {
     await adminUpdateSeller({ data: { profileId, ...patch } });
-    await queryClient.invalidateQueries({ queryKey: ["sellers"] });
+    await refreshSellers();
   }
 
+  /** Recarrega a lista direto do banco (refetch, não apenas invalidação). */
   async function refreshSellers() {
-    await queryClient.invalidateQueries({ queryKey: ["sellers"] });
+    await queryClient.refetchQueries({ queryKey: ["sellers"], type: "active" });
+    await queryClient.invalidateQueries({ queryKey: ["session-profile"] });
   }
 
   /** Vínculo automático pelo e-mail; casos ambíguos abrem a lista de candidatos. */
