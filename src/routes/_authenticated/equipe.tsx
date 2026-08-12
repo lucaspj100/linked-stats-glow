@@ -95,6 +95,61 @@ function TeamPage() {
     await queryClient.invalidateQueries({ queryKey: ["sellers"] });
   }
 
+  async function refreshSellers() {
+    await queryClient.invalidateQueries({ queryKey: ["sellers"] });
+  }
+
+  /** Vínculo automático pelo e-mail; casos ambíguos abrem a lista de candidatos. */
+  async function tryLink(seller: Profile) {
+    setCrmBusy(seller.id);
+    setCrmFeedback(null);
+    try {
+      const result: CrmLinkAttemptResult = await retryCrmLink({
+        data: { profileId: seller.id },
+      });
+      if (result.outcome === "needs_review" && result.candidates.length > 0) {
+        setAmbiguous({ seller, result });
+      }
+      setCrmFeedback(
+        result.outcome === "not_found"
+          ? "Nenhum vendedor do CRM United encontrado com este e-mail."
+          : result.message,
+      );
+    } catch (error) {
+      setCrmFeedback((error as Error).message);
+    } finally {
+      setCrmBusy(null);
+      await refreshSellers();
+    }
+  }
+
+  /** Opção secundária: administrador informa o ID do CRM manualmente. */
+  async function manualLink(seller: Profile) {
+    const value = window.prompt("ID do vendedor no CRM United", seller.crm_user_id ?? "");
+    if (value === null) return;
+    const crmUserId = value.trim();
+    if (!crmUserId) return;
+    const result = await adminSetCrmLink({ data: { profileId: seller.id, crmUserId } });
+    setCrmFeedback(result.message);
+    await refreshSellers();
+  }
+
+  async function unlink(seller: Profile) {
+    await adminUnlinkCrm({ data: { profileId: seller.id } });
+    setCrmFeedback("Vínculo removido.");
+    await refreshSellers();
+  }
+
+  async function chooseCandidate(seller: Profile, candidateId: string, name: string, email: string) {
+    const result = await adminSetCrmLink({
+      data: { profileId: seller.id, crmUserId: candidateId, crmName: name, crmEmail: email },
+    });
+    setCrmFeedback(result.message);
+    setAmbiguous(null);
+    await refreshSellers();
+  }
+
+
   if (session.isLoading) {
     return <div className="p-10 text-sm text-muted-foreground">Carregando…</div>;
   }
