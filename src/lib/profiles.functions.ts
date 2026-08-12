@@ -124,9 +124,9 @@ export const adminUpdateSeller = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => adminUpdateSchema.parse(data))
   .handler(async ({ data, context }): Promise<Profile> => {
-    const patch: Record<string, unknown> = {};
-    if (data.active !== undefined) patch["active"] = data.active;
-    if (data.crmUserId !== undefined) patch["crm_user_id"] = data.crmUserId || null;
+    const patch: { active?: boolean; crm_user_id?: string | null } = {};
+    if (data.active !== undefined) patch.active = data.active;
+    if (data.crmUserId !== undefined) patch.crm_user_id = data.crmUserId || null;
 
     const { data: row, error } = await context.supabase
       .from("profiles")
