@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
+import { Route as AuthenticatedMinhaExtensaoRouteImport } from './routes/_authenticated/minha-extensao'
 import { Route as AuthenticatedInstalacoesRouteImport } from './routes/_authenticated/instalacoes'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as ApiPublicTrackMessageRouteImport } from './routes/api/public/track-message'
@@ -42,6 +43,12 @@ const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMinhaExtensaoRoute =
+  AuthenticatedMinhaExtensaoRouteImport.update({
+    id: '/minha-extensao',
+    path: '/minha-extensao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedInstalacoesRoute =
   AuthenticatedInstalacoesRouteImport.update({
     id: '/instalacoes',
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/instalacoes': typeof AuthenticatedInstalacoesRoute
+  '/minha-extensao': typeof AuthenticatedMinhaExtensaoRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
 }
@@ -73,6 +81,7 @@ export interface FileRoutesByTo {
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/instalacoes': typeof AuthenticatedInstalacoesRoute
+  '/minha-extensao': typeof AuthenticatedMinhaExtensaoRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
@@ -84,6 +93,7 @@ export interface FileRoutesById {
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/instalacoes': typeof AuthenticatedInstalacoesRoute
+  '/_authenticated/minha-extensao': typeof AuthenticatedMinhaExtensaoRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/public/track-message': typeof ApiPublicTrackMessageRoute
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/politica-de-privacidade'
     | '/equipe'
     | '/instalacoes'
+    | '/minha-extensao'
     | '/perfil'
     | '/api/public/track-message'
   fileRoutesByTo: FileRoutesByTo
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '/politica-de-privacidade'
     | '/equipe'
     | '/instalacoes'
+    | '/minha-extensao'
     | '/perfil'
     | '/'
     | '/api/public/track-message'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
     | '/politica-de-privacidade'
     | '/_authenticated/equipe'
     | '/_authenticated/instalacoes'
+    | '/_authenticated/minha-extensao'
     | '/_authenticated/perfil'
     | '/_authenticated/'
     | '/api/public/track-message'
@@ -163,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/minha-extensao': {
+      id: '/_authenticated/minha-extensao'
+      path: '/minha-extensao'
+      fullPath: '/minha-extensao'
+      preLoaderRoute: typeof AuthenticatedMinhaExtensaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/instalacoes': {
       id: '/_authenticated/instalacoes'
       path: '/instalacoes'
@@ -190,6 +210,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedInstalacoesRoute: typeof AuthenticatedInstalacoesRoute
+  AuthenticatedMinhaExtensaoRoute: typeof AuthenticatedMinhaExtensaoRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
@@ -197,6 +218,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedInstalacoesRoute: AuthenticatedInstalacoesRoute,
+  AuthenticatedMinhaExtensaoRoute: AuthenticatedMinhaExtensaoRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
